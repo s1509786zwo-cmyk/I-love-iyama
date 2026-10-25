@@ -1,0 +1,16 @@
+ function lounge(){const root=new THREE.Group();root.name='Castle Lounge — integrated PBR architecture';root.userData.lamps=[];
+  floorProfile(root,6.4,[[0,0],[11,0]]);vault(root,6.4,11);
+  wall(root,6.4,3.45,[0,0,0],0,{center:0,width:1.95,top:2.75});wall(root,6.4,3.45,[0,0,11],Math.PI);
+  wall(root,11,3.45,[3.2,0,5.5],-Math.PI/2);wall(root,11,3.45,[-3.2,0,5.5],Math.PI/2);
+  const clothCanvas=document.createElement('canvas');clothCanvas.width=clothCanvas.height=128;const ctx=clothCanvas.getContext('2d');ctx.fillStyle='#46534d';ctx.fillRect(0,0,128,128);for(let i=0;i<128;i++){ctx.strokeStyle=i%2?'#52605a':'#3f4a44';ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,128);ctx.stroke();ctx.globalAlpha=.3;ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(128,i);ctx.stroke();ctx.globalAlpha=1;}const tex=new THREE.CanvasTexture(clothCanvas);tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,4);const cloth=new THREE.MeshStandardMaterial({map:tex,roughness:.98});
+  for(const x of[-2.95,2.95])for(const z of[2.6,6.0,9.5]){sconce(root,x,z,sideSign(x),2.25);box(root,.14,2.35,.22,x,1.175,z,stone);}
+  function sofa(x,z){for(const dx of[-.76,.76])for(const dz of[-.26,.26])mesh(root,new THREE.CylinderGeometry(.035,.045,.21,10),wood,x+dx,.105,z+dz);box(root,1.95,.19,.82,x,.285,z,wood);for(const dx of[-.48,.48]){const c=box(root,.92,.15,.69,x+dx,.435,z,cloth);c.geometry.dispose();c.geometry=new THREE.BoxGeometry(.92,.15,.69,3,2,3);}box(root,1.78,.55,.14,x,.73,z+.35,cloth);for(const dx of[-.94,.94])box(root,.13,.42,.85,x+dx,.55,z,wood);}
+  // Measured seat 0.51 m; adult-height round tea tables (top 0.80 m).
+  for(const x of[-1.72,1.72]){sofa(x,7.4);const top=mesh(root,new THREE.CylinderGeometry(.62,.62,.065,48),wood,x,.7675,5.95);top.name='HumanDesk';mesh(root,new THREE.CylinderGeometry(.06,.11,.73,16),metal,x,.365,5.95);mesh(root,new THREE.CylinderGeometry(.38,.42,.045,32),metal,x,.0225,5.95);
+   for(const dx of[-.20,.20]){const cup=mesh(root,new THREE.LatheGeometry([new THREE.Vector2(.026,0),new THREE.Vector2(.035,.008),new THREE.Vector2(.038,.075),new THREE.Vector2(.032,.078),new THREE.Vector2(.030,.014)],16),metal,x+dx,.80,5.95);const handle=mesh(root,new THREE.TorusGeometry(.024,.006,7,12),metal,x+dx+.04,.842,5.95);}
+  }
+  // Carved timber refreshment cabinet, waist-height worktop and brass details.
+  box(root,3.2,.70,.57,0,.35,10.45,wood);box(root,3.34,.10,.68,0,.75,10.45,wood);for(const x of[-1.1,0,1.1]){box(root,.94,.53,.045,x,.37,10.13,wood);mesh(root,new THREE.SphereGeometry(.025,8,6),metal,x,.40,10.09);}
+  for(const x of[-2.8,2.8]){box(root,.38,1.1,.44,x,.55,10.3,stone);mesh(root,new THREE.SphereGeometry(.14,16,12),metal,x,1.23,10.3);}
+  root.userData.tableHeight=.8;root.userData.portals=[{id:'return',kind:'return',target:'corridor',label:'大回廊へ戻る',position:[0,1.25,.20],stand:[0,0,1.7],size:[1.9,2.5,.65]}];root.userData.spawnLocal=[0,0,2];root.userData.lookLocal=[0,1.65,8];batch(root);return root;
+ }
