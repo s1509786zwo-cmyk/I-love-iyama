@@ -1,0 +1,9 @@
+sibenik: Sibenik cathedral interior, 75,284 triangles, with textures and bump maps.
+
+License:     CC BY-NC (version not stated)
+Attribution: (c) 2002 Marko Dabrovic (www.RNA.HR); holes corrected by Kenzie Lamar at Vicarious Visions; high-resolution textures and bump maps by Morgan McGuire
+Origin:      https://casual-effects.com/data (Sibenik Cathedral, sibenik.zip)
+Notes:       copyright.txt in the archive names the authors but no license; the archive entry states CC BY-NC, so no commercial use.
+
+Packed by AssetANT (https://github.com/Kataglyphis/AssetANT, assets/sibenik/asset.json)
+from https://github.com/Kataglyphis/BeschleunigerBallett at c610c76fc0069604ff0f1e58051e0c2ac26e0cb1, Resources/Models/sibenik.

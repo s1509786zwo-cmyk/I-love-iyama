@@ -1,0 +1,137 @@
+// One active zone: inactive GPU meshes, materials, textures and BVHs are disposed.
+// Compressed source ArrayBuffers are cached to avoid re-downloading the 53 MB hub.
+const AREA_CONFIG={
+ hub:{name:'Sponza — メイン回廊',url:C.sponza,span:42,baseY:0,spawn:[-7,C.floor,0],look:[7,C.floor+1.62,0]},
+ A:{name:'扉A — 大広間 / Sibenik',embedded:'cathedralData',span:64,baseY:C.floor-.0195536,spawn:[-20,C.floor,0],look:[5,C.floor+5,0],stairScan:[-10,30]},
+ B:{name:'扉B — 地下の休憩室 / Breakfast Room',url:'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/bitterli-rendering-resources/breakfast-room.glb',span:14,baseY:-12,useCamera:true}
+};
+const rawCache=new Map();
+let activeArea='hub',activeSpawn=null,activeLook=null,transitioning=false,returnPose=null,doors=[],doorHits=[],selectedDoor=null,interactionTime=0;
+let wood=null,doorIron=null;
+const sharedMaterials=new Set(),sharedTextures=new Set();
+function rememberShared(material){sharedMaterials.add(material);for(const v of Object.values(material))if(v?.isTexture)sharedTextures.add(v);return material;}
+async function sourceBytes(key){
+ if(rawCache.has(key))return rawCache.get(key);
+ const cfg=AREA_CONFIG[key];let bytes;
+ if(cfg.embedded){bytes=Uint8Array.from(atob($(cfg.embedded).textContent.trim()),c=>c.charCodeAt(0)).buffer;}
+ else{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);
+  try{const response=await fetch(cfg.url,{mode:'cors',signal:controller.signal});if(!response.ok)throw new Error(`HTTP ${response.status}: ${cfg.name}`);bytes=await response.arrayBuffer();}finally{clearTimeout(timer);}
+ }
+ rawCache.set(key,bytes);return bytes;
+}
+function disposeArea(){
+ doors=[];doorHits=[];selectedDoor=null;$('doorPrompt').textContent='';stairRuns.length=0;
+ const geometries=new Set(),materials=new Set(),textures=new Set();
+ for(const group of architecture.children.slice()){
+  architecture.remove(group);group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of [].concat(o.material||[])){materials.add(m);for(const value of Object.values(m))if(value?.isTexture)textures.add(value);}});
+ }
+ geometries.forEach(g=>g.dispose());materials.forEach(m=>{if(!sharedMaterials.has(m))m.dispose();});textures.forEach(t=>{if(!sharedTextures.has(t))t.dispose();});
+ if(collider){collider.geometry.boundsTree=null;collider.geometry.dispose();collider.material.dispose();collider=null;}
+ renderer.renderLists.dispose();ready=false;
+}
+function doorMesh(group,geometry,material,x,y,z){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;group.add(m);return m;}
+function createDoor({id,target,label,x,y,z,yaw=0,stand}){
+ const group=new THREE.Group();group.position.set(x,y,z);group.rotation.y=yaw;architecture.add(group);
+ const b=(w,h,d,x,y,z,m)=>doorMesh(group,new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ // An interactable prop only: no generated floor or stair geometry.
+ b(1.58,2.62,.12,0,1.31,0,wood);
+ for(const sx of [-.86,.86])b(.15,2.88,.24,sx,1.44,.03,stone);
+ b(1.88,.17,.24,0,2.84,.03,stone);
+ for(const sx of [-.39,.39])for(const h of [.54,1.37,2.18])b(.66,.09,.07,sx,h,.10,doorIron);
+ for(const sx of [-.07,.07]){
+  const ring=doorMesh(group,new THREE.TorusGeometry(.058,.014,7,16),doorIron,sx,1.25,.14);
+  const back=b(.09,.17,.025,sx,1.28,.10,doorIron);
+ }
+ const studs=new THREE.InstancedMesh(new THREE.SphereGeometry(.022,6,4),doorIron,24),dummy=new THREE.Object3D();
+ let at=0;for(const sx of [-.69,-.18,.18,.69])for(const y of [.54,.69,1.37,1.52,2.18,2.33]){dummy.position.set(sx,y,.15);dummy.updateMatrix();studs.setMatrixAt(at++,dummy.matrix);}studs.castShadow=true;group.add(studs);
+ // Merge local door details by material. Keep the proxy out of the collision BVH.
+ const buckets=new Map();for(const m of group.children.slice()){if(!m.isMesh||m.isInstancedMesh)continue;if(!buckets.has(m.material))buckets.set(m.material,[]);buckets.get(m.material).push(m);}
+ for(const [material,list] of buckets){if(list.length<2)continue;const gs=list.map(m=>{m.updateMatrix();let g=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();return g.applyMatrix4(m.matrix);});const g=mergeGeometries(gs);gs.forEach(g=>g.dispose());if(g){const m=new THREE.Mesh(g,material);m.castShadow=m.receiveShadow=true;group.add(m);list.forEach(m=>{group.remove(m);m.geometry.dispose();});}}
+ const proxy=new THREE.Mesh(new THREE.BoxGeometry(1.85,2.9,.38),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false}));proxy.position.set(0,1.45,.03);proxy.userData.noCollision=true;group.add(proxy);
+ const door={id,target,label,group,proxy,stand};proxy.userData.door=door;doors.push(door);doorHits.push(proxy);group.updateMatrixWorld(true);return door;
+}
+function safeSpawn(cfg,cameraHint){
+ const candidates=[];
+ if(cameraHint)candidates.push({x:cameraHint.position.x,z:cameraHint.position.z,from:cameraHint.position.y+.5});
+ if(cfg.spawn)candidates.push({x:cfg.spawn[0],z:cfg.spawn[2],from:cfg.spawn[1]+.5});
+ for(const c of candidates){const floor=floorAt(c.x,c.z,c.from,8);if(floor&&bodyClear(c.x,floor.point.y,c.z))return new THREE.Vector3(c.x,floor.point.y+C.eye,c.z);}
+ const box=new THREE.Box3().setFromObject(architecture);let best=null,bestScore=-Infinity;
+ for(let x=box.min.x+.7;x<box.max.x;x+=.8)for(let z=box.min.z+.7;z<box.max.z;z+=.8){const f=floorAt(x,z,box.min.y+4,6);if(!f||!bodyClear(x,f.point.y,z))continue;const score=-Math.hypot(x-(cameraHint?.position.x||0),z-(cameraHint?.position.z||0));if(score>bestScore){bestScore=score;best=new THREE.Vector3(x,f.point.y+C.eye,z);}}
+ if(!best)throw new Error('歩行可能な入口が見つかりません。');return best;
+}
+function installDoors(cfg){
+ if(activeArea==='hub'){
+  for(const [id,target,label,ideal] of [['doorA','A','扉A：大広間',-6],['doorB','B','扉B：地下の休憩室',6]]){
+   let choice=null;
+   for(const delta of [0,.7,-.7,1.4,-1.4,2.1,-2.1]){const x=ideal+delta,standZ=-5.0,f=floorAt(x,standZ,C.floor+.5,2);if(f&&Math.abs(f.point.y-C.floor)<.3&&bodyClear(x,f.point.y,standZ)){choice={x,y:f.point.y,z:-6.3,stand:[x,f.point.y,standZ]};break;}}
+   if(!choice)throw new Error(`${label} の安全な足場が見つかりません。`);
+   createDoor({id,target,label,...choice});
+  }
+ }else{
+  const fwd=activeLook.clone().sub(activeSpawn);fwd.y=0;fwd.normalize();if(fwd.lengthSq()<.1)fwd.set(1,0,0);
+  const pos=activeSpawn.clone().addScaledVector(fwd,-1.05);let floor=floorAt(pos.x,pos.z,activeSpawn.y-C.eye+.5,2);
+  if(!floor||Math.abs(floor.point.y-(activeSpawn.y-C.eye))>.4){pos.copy(activeSpawn).addScaledVector(fwd,-.8);floor={point:new THREE.Vector3(pos.x,activeSpawn.y-C.eye,pos.z)};}
+  createDoor({id:'return',target:'hub',label:'メイン回廊へ戻る',x:pos.x,y:floor.point.y,z:pos.z,yaw:Math.atan2(fwd.x,fwd.z),stand:[activeSpawn.x,activeSpawn.y-C.eye,activeSpawn.z]});
+ }
+}
+async function loadArea(key){
+ const cfg=AREA_CONFIG[key];stage(`${cfg.name} を読み込み中…`);$('fadeDetail').textContent=cfg.name;
+ // Free the previous area's decoded meshes and GPU allocations before parsing.
+ disposeArea();await yieldTask();
+ const bytes=await sourceBytes(key),loader=new GLTFLoader();const draco=new DRACOLoader();draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');loader.setDRACOLoader(draco);
+ let gltf;
+ try{gltf=await loader.parseAsync(bytes,'');}finally{draco.dispose();}
+ normalizeAsset(gltf.scene,cfg.span,0,cfg.baseY);
+ let cameraHint=null;if(cfg.useCamera&&gltf.cameras?.length){const c=gltf.cameras[0];c.updateWorldMatrix(true,false);cameraHint={position:c.getWorldPosition(new THREE.Vector3()),quaternion:c.getWorldQuaternion(new THREE.Quaternion())};}
+ const group=flattenScene(gltf.scene);architecture.add(group);
+ // Original geometries are no longer referenced after flattening; materials are shared.
+ gltf.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();});
+ group.traverse(o=>{if(!o.isMesh)return;o.castShadow=o.receiveShadow=true;o.frustumCulled=true;
+  if(key==='A'){const name=o.name.toLowerCase(),m=o.material.clone();if(/staklo|rozeta/.test(name)){m.emissive=new THREE.Color(0x50698c);m.emissiveIntensity=.25;}else{m.roughness=.9;m.metalness=0;if(!m.map)m.map=stone.map;m.normalMap=stone.normalMap;m.roughnessMap=stone.roughnessMap;m.normalScale=new THREE.Vector2(.35,.35);}o.material=m;}
+  for(const m of [].concat(o.material))for(const property of ['map','normalMap','roughnessMap']){const t=m[property];if(t&&t.anisotropy!==4){t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());t.needsUpdate=true;}}
+ });
+ activeArea=key;stage(`${cfg.name}：床・壁の当たり判定を構築中…`);await buildCollision();inferStairAssist(cfg.stairScan);
+ activeSpawn=safeSpawn(cfg,cameraHint);
+ if(cameraHint)activeLook=activeSpawn.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(cameraHint.quaternion).multiplyScalar(5));
+ else if(cfg.look)activeLook=new THREE.Vector3(...cfg.look);else activeLook=activeSpawn.clone().add(new THREE.Vector3(1,0,0));
+ installDoors(cfg);
+ // Rebuild once with the physical wooden doors included.
+ if(collider){collider.geometry.boundsTree=null;collider.geometry.dispose();collider.material.dispose();collider=null;}
+ await buildCollision();reset();ready=true;spot.shadow.needsUpdate=true;shadowTime=-1;
+ if(key==='B'){hemi.intensity=.65;moon.intensity=.65;}else{hemi.intensity=.9;moon.intensity=1.25;}
+ stage(`${cfg.name} · Eで扉を調べる · ${Math.round(positionCount).toLocaleString()} collision tris`);
+}
+function scanDoor(){
+ selectedDoor=null;$('doorPrompt').textContent='';if(!ready||transitioning||!controls.isLocked)return;
+ camera.updateMatrixWorld(true);architecture.updateMatrixWorld(true);
+ const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(),camera);r.far=3;const hits=r.intersectObjects(doorHits,false);if(!hits.length)return;
+ const hit=hits[0],door=hit.object.userData.door,dir=hit.point.clone().sub(camera.position).normalize();
+ // Test only native environment; the interactive door's own front is permitted.
+ const blockers=nativeCast(camera.position,dir,Math.max(.01,hit.distance-.22),true);
+ if(blockers.length)return;selectedDoor=door;
+ $('doorPrompt').textContent=`Eキー：${door.target==='hub'?'回廊へ戻る':'部屋に入る'}　— ${door.label}`;
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+async function fade(to){const el=$('fade');el.classList.remove('hidden');if(to===1){el.style.opacity='0';el.getBoundingClientRect();}el.style.opacity=String(to);await wait(1050);if(to===0)el.classList.add('hidden');}
+async function useDoor(){
+ if(transitioning||!ready)return;scanDoor();const door=selectedDoor;if(!door)return;
+ const from=activeArea,pose={position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),feet};
+ if(from==='hub')returnPose={...pose,doorId:door.id};
+ transitioning=true;keys.clear();jumpRequested=false;velocity.set(0,0,0);selectedDoor=null;$('doorPrompt').textContent='';$('fadeLabel').textContent='……（扉を開けています）';$('fadeDetail').textContent='';
+ // Keep Pointer Lock across the asynchronous load; only Esc or blur releases it.
+ await fade(1);
+ let error=null;
+ try{
+  await loadArea(door.target);
+  if(door.target==='hub'&&returnPose){camera.position.fromArray(returnPose.position);camera.quaternion.fromArray(returnPose.quaternion);feet=returnPose.feet;grounded=true;verticalVelocity=0;flashQ.copy(camera.quaternion);}
+  // Hide the shader/texture warm-up behind the black screen.
+  try{await renderer.compileAsync(scene,camera);}catch{}
+  renderer.render(scene,camera);
+ }catch(e){error=e;console.error(e);$('fadeLabel').textContent='読み込みに失敗しました。元の場所へ戻ります…';
+  try{await loadArea(from);camera.position.fromArray(pose.position);camera.quaternion.fromArray(pose.quaternion);feet=pose.feet;verticalVelocity=0;grounded=true;flashQ.copy(camera.quaternion);}catch(rollback){console.error(rollback);failed=true;ready=false;stage('復帰にも失敗しました。再読込してください。');$('retry').classList.remove('hidden');}
+ }
+ spot.shadow.needsUpdate=true;shadowTime=-1;await fade(0);transitioning=false;keys.clear();
+ if(!controls.isLocked)setMenu(true);
+ if(error)stage(`読込に失敗したため復帰しました：${error.message}`);
+}
