@@ -1,0 +1,8 @@
+warning [.WebGL-0x23f400163000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+log ROOM_BOX [-3.6464900970458984, 6.32498355912503e-8, -4.530420780181885] [3.6464900970458984, 3.3999993801116943, 4.53041934967041] {"factor":0.31947656454831014,"bboxHeight":3.4,"ceilingTarget":[3,3.5],"tableHeight":null,"eyeHeight":1.65}
+log ROOM_CANDIDATES 0 CENTRAL [{"y":1.9374985978195918,"n":0.9999999986944477},{"y":1.8564801307701018,"n":-0.9999999999990665},{"y":1.8464089558378596,"n":-0.452074232484061},{"y":0.13594521123361414,"n":0.9999999999998852},{"y":0.07909161717859581,"n":0.9999999999999062}]
+FAIL page.evaluate: Error: 成人サイズの安全な床と帰還地点を検出できません。別のGLBをドロップしてください。
+    at oC (file:///home/user/wine_explorer/index.html?debug:4177:17433)
+    at $o (file:///home/user/wine_explorer/index.html?debug:4177:19048)
+    at async <anonymous>:396:30
+wine: 25.187s

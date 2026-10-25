@@ -1,0 +1,29 @@
+FACE chainGate { selected: 'chainGate', prompt: 'Eキー：中庭奥の大門：新マップ1へ' }
+AREA room1 SCALE {
+  factor: 1.0000000000055604,
+  bboxHeight: 5.709687522,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.476,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 1.8984770047140962, 1.6443764265533147, 2.188377325587334 ] GPU { geometries: 15, textures: 2 }
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.screenshot: Timeout 30000ms exceeded.
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+  - fonts loaded
+
+    at /home/user/browser_checks/chain-visual.mjs:4:166 {
+  log: [
+    '  - taking page screenshot',
+    '  - waiting for fonts to load...',
+    '  - fonts loaded'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v20.20.2

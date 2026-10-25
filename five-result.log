@@ -1,0 +1,46 @@
+FACE ironDoor { selected: 'ironDoor', prompt: 'Eキー：鉄扉を開けて大回廊へ' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 0, 1.65, 2 ] GPU { geometries: 48, textures: 10 }
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://raw.githubusercontent.com/dracosdraco-coder/thelibrary/HEAD/public/assets/models/Library.glb
+    at p (file:///home/user/five_spaces/debug.html?debug:1:20922)
+    at async file:///home/user/five_spaces/debug.html?debug:1:21073
+    at async ut (file:///home/user/five_spaces/debug.html?debug:1:22242)
+    at async me (file:///home/user/five_spaces/debug.html?debug:1:28333)
+    at async Gt (file:///home/user/five_spaces/debug.html?debug:1:30963)
+    at async Object.ft [as useDoor] (file:///home/user/five_spaces/debug.html?debug:1:30562)
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+PASS 503 rollback
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+AREA library SCALE {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+} POSITION [ -0.8208753967285141, 1.8477178156375884, -4.104376983642577 ] GPU { geometries: 4, textures: 10 }
+PASS human eye library 1.65 {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+FACE myroom { selected: 'myroom', prompt: 'Eキー：黒アーチ②：自分の部屋へ' }
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Target crashed 
+    at state (/home/user/browser_checks/five-test.mjs:1:786)
+    at go (/home/user/browser_checks/five-test.mjs:1:1316)
+    at async file:///home/user/browser_checks/five-test.mjs:6:103 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v20.20.2

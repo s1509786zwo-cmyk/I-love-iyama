@@ -1,0 +1,51 @@
+FACE chainGate { selected: 'chainGate', prompt: 'Eキー：中庭奥の大門：新マップ1へ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://files.catbox.moe/33qxzs.glb
+    at p (file:///home/user/new_chain/debug.html?debug:1:31575)
+    at async file:///home/user/new_chain/debug.html?debug:1:31856
+    at async Xe (file:///home/user/new_chain/debug.html?debug:1:34071)
+    at async Be (file:///home/user/new_chain/debug.html?debug:1:42762)
+    at async Object.Ht [as useDoor] (file:///home/user/new_chain/debug.html?debug:1:45892)
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ 13.3, 3.0489596366882323, 0 ] GPU { geometries: 15, textures: 28 }
+PASS 503 source restore
+FACE chainGate { selected: 'chainGate', prompt: 'Eキー：中庭奥の大門：新マップ1へ' }
+AREA room1 SCALE {
+  factor: 1.0000000000055604,
+  bboxHeight: 5.709687522,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.476,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 1.8984770047140962, 1.6443764265533147, 2.188377325587334 ] GPU { geometries: 15, textures: 2 }
+PASS strict aiming, no proximity-only trigger
+NAV1 {
+  reachable: true,
+  visited: 797,
+  queued: 841,
+  goal: [ -4.296799941618766, -0.010038398614297783, 2.4264074865330048 ]
+}
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA room2 SCALE {
+  factor: 1.0000000000429685,
+  bboxHeight: 4.708696385999999,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.254,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -1.358953729679576, 1.6608435388118028, -1.3429924999199536 ] GPU { geometries: 14, textures: 2 }
+NAV2 {
+  reachable: true,
+  visited: 116,
+  queued: 120,
+  goal: [ 2.486046270522161, 0.00018944827203715153, -0.3179924998393883 ]
+}
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA room3 SCALE {
+  factor: 0.9999999999826117,
+  bboxHeight: 13.456366956,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: -1.3,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -9.761967361265672, 1.7569903223178833, -5.135964559227331 ] GPU { geometries: 17, textures: 2 }
+PASS native floor walkable routes to both next doors / zero JS errors

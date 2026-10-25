@@ -1,0 +1,37 @@
+FACE chainGate { selected: 'chainGate', prompt: 'Eキー：中庭奥の大門：新マップ1へ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://files.catbox.moe/33qxzs.glb
+    at p (file:///home/user/new_chain/debug.html?debug:1:31575)
+    at async file:///home/user/new_chain/debug.html?debug:1:31856
+    at async Xe (file:///home/user/new_chain/debug.html?debug:1:34071)
+    at async Be (file:///home/user/new_chain/debug.html?debug:1:42762)
+    at async Object.Ht [as useDoor] (file:///home/user/new_chain/debug.html?debug:1:45892)
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ 13.3, 3.0489596366882323, 0 ] GPU { geometries: 15, textures: 28 }
+PASS 503 source restore
+FACE chainGate { selected: 'chainGate', prompt: 'Eキー：中庭奥の大門：新マップ1へ' }
+AREA room1 SCALE {
+  factor: 1.0000000000055604,
+  bboxHeight: 5.709687522,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.476,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 1.8984770047140962, 1.6443764265533147, 2.188377325587334 ] GPU { geometries: 15, textures: 2 }
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'return'
+- undefined
+    at file:///home/user/browser_checks/chain-navigation-test.mjs:5:39 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'return',
+  expected: undefined,
+  operator: 'strictEqual'
+}
+
+Node.js v20.20.2

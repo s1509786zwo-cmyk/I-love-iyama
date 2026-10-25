@@ -1,0 +1,125 @@
+PASS door2 locked / texture quality
+FACE chainGate { selected: 'chainGate', prompt: '扉は固く閉ざされている…' }
+AREA room1 SCALE {
+  factor: 1.0000000000055604,
+  bboxHeight: 5.709687522,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.476,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 1.8984770047140962, 1.6443764265533147, 2.188377325587334 ] GPU { geometries: 15, textures: 5 }
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA room2 SCALE {
+  factor: 1.0000000000429685,
+  bboxHeight: 4.708696385999999,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.254,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -1.358953729679576, 1.660843538811803, -1.3429924999199536 ] GPU { geometries: 14, textures: 5 }
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA room3 SCALE {
+  factor: 0.9999999999826117,
+  bboxHeight: 13.456366956,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: -1.3,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -9.761967361265672, 1.7569903223178833, -5.135964559227331 ] GPU { geometries: 17, textures: 5 }
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：前の部屋へ戻る' }
+AREA room2 SCALE {
+  factor: 1.0000000000429685,
+  bboxHeight: 4.708696385999999,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.254,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 2.486046270522161, 1.650189448272037, -0.3179924998393883 ] GPU { geometries: 14, textures: 5 }
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：前の部屋へ戻る' }
+AREA room1 SCALE {
+  factor: 1.0000000000055604,
+  bboxHeight: 5.709687522,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.476,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -4.296799941618766, 1.6399616013857021, 2.4264074865330048 ] GPU { geometries: 15, textures: 5 }
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：Sponza中庭へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ 13.2, 3.0489596366882323, 0 ] GPU { geometries: 43, textures: 62 }
+PASS three real maps / native door-only interactions / exact nested returns
+FACE ironDoor { selected: 'ironDoor', prompt: 'Eキー：鉄扉を開けて大回廊へ' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 0, 1.65, 2 ] GPU { geometries: 52, textures: 10 }
+FACE library { selected: 'library', prompt: 'Eキー：大図書館（Grand Library）へ' }
+AREA library SCALE {
+  factor: 1,
+  bboxHeight: 3.450000071525574,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+} POSITION [ 0, 1.6500000238418582, -8 ] GPU { geometries: 21, textures: 11 }
+PASS human eye library 1.65 {
+  factor: 1,
+  bboxHeight: 3.450000071525574,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+}
+FACE return { selected: 'return', prompt: 'Eキー：大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+FACE myroom { selected: 'myroom', prompt: 'Eキー：黒アーチ：自分の部屋へ' }
+AREA myroom SCALE {
+  factor: 1,
+  bboxHeight: 3.450000071525574,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+} POSITION [ 0, 1.6500000238418582, -4 ] GPU { geometries: 25, textures: 16 }
+PASS human eye myroom 1.65 {
+  factor: 1,
+  bboxHeight: 3.450000071525574,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+}
+FACE return { selected: 'return', prompt: 'Eキー：大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 20 ] GPU { geometries: 8, textures: 10 }
+FACE lounge { selected: 'lounge', prompt: 'Eキー：城の休憩室（Castle Lounge）へ' }
+AREA lounge SCALE {
+  factor: 1,
+  bboxHeight: 3.450000059604645,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+} POSITION [ 0, 1.650000011920929, -3.5 ] GPU { geometries: 20, textures: 11 }
+PASS human eye lounge 1.65 {
+  factor: 1,
+  bboxHeight: 3.450000059604645,
+  ceilingTarget: [ 3, 3.5 ],
+  tableHeight: 0.8,
+  eyeHeight: 1.65
+}
+FACE return { selected: 'return', prompt: 'Eキー：大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -1, 1.65, 28.8 ] GPU { geometries: 14, textures: 10 }
+FACE dungeon { selected: 'dungeon', prompt: 'Eキー：石階段の下：地下ワインセラーへ' }
+AREA dungeon SCALE {
+  factor: 0.9259259232005193,
+  bboxHeight: 3.148148096109914,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  floorY: 0.09259259369978907,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.12962962924807275, 1.7425925970077514, -0.17407406649744317 ] GPU { geometries: 26, textures: 27 }
+PASS human eye dungeon 1.65 {
+  factor: 0.9259259232005193,
+  bboxHeight: 3.148148096109914,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  floorY: 0.09259259369978907,
+  scaleBasis: 'authored tabletop / floor'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -6.25, -0.2699999740849294, 36.2 ] GPU { geometries: 40, textures: 11 }
+PASS controls and real stair descent
+FACE courtyard { selected: 'courtyard', prompt: 'Eキー：中庭（Sponza）へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ -0.039293485342917434, 3.0489596366882328, 5.786872166207433 ] GPU { geometries: 39, textures: 60 }
+PASS three new maps + all existing rooms / exact returns / zero JS errors

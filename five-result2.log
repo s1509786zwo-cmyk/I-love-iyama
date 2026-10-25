@@ -1,0 +1,72 @@
+FACE ironDoor { selected: 'ironDoor', prompt: 'Eキー：鉄扉を開けて大回廊へ' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 0, 1.65, 2 ] GPU { geometries: 48, textures: 10 }
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://raw.githubusercontent.com/dracosdraco-coder/thelibrary/HEAD/public/assets/models/Library.glb
+    at m (file:///home/user/five_spaces/debug.html?debug:1:20961)
+    at async file:///home/user/five_spaces/debug.html?debug:1:21112
+    at async ut (file:///home/user/five_spaces/debug.html?debug:1:22951)
+    at async Ee (file:///home/user/five_spaces/debug.html?debug:1:29042)
+    at async Gt (file:///home/user/five_spaces/debug.html?debug:1:31759)
+    at async Object.ft [as useDoor] (file:///home/user/five_spaces/debug.html?debug:1:31358)
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+PASS 503 rollback
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+AREA library SCALE {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+} POSITION [ -0.8208753967285141, 1.8477178156375884, -4.104376983642577 ] GPU { geometries: 4, textures: 10 }
+PASS human eye library 1.65 {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+FACE myroom { selected: 'myroom', prompt: 'Eキー：黒アーチ②：自分の部屋へ' }
+AREA myroom SCALE {
+  factor: 0.7065216203615476,
+  bboxHeight: 3.25,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+} POSITION [ 0.06499998772567928, 2.0842197695722895, 0.0650000016844785 ] GPU { geometries: 6, textures: 25 }
+PASS human eye myroom 1.65 {
+  factor: 0.7065216203615476,
+  bboxHeight: 3.25,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 20 ] GPU { geometries: 8, textures: 10 }
+FACE cellar { selected: 'cellar', prompt: 'Eキー：石階段の底：地下ワインセラーへ' }
+AREA wine SCALE {
+  factor: 0.9259259232005193,
+  bboxHeight: 3.148148096109914,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  floorY: 0.09259259369978907,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.12962962924807275, 1.7425925970077514, -0.17407406649744317 ] GPU { geometries: 26, textures: 30 }
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Target crashed 
+    at state (/home/user/browser_checks/five-test.mjs:1:786)
+    at /home/user/browser_checks/five-test.mjs:6:139 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v20.20.2

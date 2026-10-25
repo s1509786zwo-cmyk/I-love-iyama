@@ -1,0 +1,74 @@
+FACE ironDoor { selected: 'ironDoor', prompt: 'Eキー：鉄扉を開けて大回廊へ' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 0, 1.65, 2 ] GPU { geometries: 48, textures: 10 }
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://raw.githubusercontent.com/dracosdraco-coder/thelibrary/HEAD/public/assets/models/Library.glb
+    at h (file:///home/user/five_spaces/debug.html?debug:1:20961)
+    at async file:///home/user/five_spaces/debug.html?debug:1:21112
+    at async ut (file:///home/user/five_spaces/debug.html?debug:1:23943)
+    at async Ee (file:///home/user/five_spaces/debug.html?debug:1:30034)
+    at async Ut (file:///home/user/five_spaces/debug.html?debug:1:32776)
+    at async Object.ft [as useDoor] (file:///home/user/five_spaces/debug.html?debug:1:32375)
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 10 }
+PASS 503 rollback
+FACE library { selected: 'library', prompt: 'Eキー：黒アーチ①：大図書館へ' }
+AREA library SCALE {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+} POSITION [ -0.3819127750396727, 2.1111913859844207, -0.13456692695617667 ] GPU { geometries: 52, textures: 12 }
+PASS human eye library 1.65 {
+  factor: 0.5069826230851157,
+  bboxHeight: 6.199999999999999,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 12 ] GPU { geometries: 11, textures: 11 }
+FACE myroom { selected: 'myroom', prompt: 'Eキー：黒アーチ②：自分の部屋へ' }
+AREA myroom SCALE {
+  factor: 0.7065216203615476,
+  bboxHeight: 3.25,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+} POSITION [ 0.06499998772567928, 2.0842197695722895, 0.0650000016844785 ] GPU { geometries: 6, textures: 26 }
+PASS human eye myroom 1.65 {
+  factor: 0.7065216203615476,
+  bboxHeight: 3.25,
+  tableHeight: null,
+  eyeHeight: 1.65,
+  floorY: 0,
+  scaleBasis: 'bbox'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 20 ] GPU { geometries: 0, textures: 11 }
+FACE cellar { selected: 'cellar', prompt: 'Eキー：石階段の底：地下ワインセラーへ' }
+AREA wine SCALE {
+  factor: 0.9259259232005193,
+  bboxHeight: 3.148148096109914,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  floorY: 0.09259259369978907,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.12962962924807275, 1.7425925970077514, -0.17407406649744317 ] GPU { geometries: 26, textures: 30 }
+PASS human eye wine 1.65 {
+  factor: 0.9259259232005193,
+  bboxHeight: 3.148148096109914,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  floorY: 0.09259259369978907,
+  scaleBasis: 'authored tabletop / floor'
+}
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -6.25, -0.26999995708465585, 36.2 ] GPU { geometries: 7, textures: 11 }
+PASS controls and real stair descent
+FACE courtyard { selected: 'courtyard', prompt: 'Eキー：中庭（Sponza）へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ -0.039293485342917434, 3.0489596366882323, 5.786872166207433 ] GPU { geometries: 30, textures: 47 }
+PASS all five spaces and real external rooms / exact returns / zero JS errors
