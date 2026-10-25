@@ -1,0 +1,28 @@
+{
+  "format": "split-glb-v1",
+  "model": "dehaar.glb",
+  "byteLength": 32290368,
+  "sha256": "ab30453bf313e4ce758d206c51d3ac81b1e9aaf9384e2c5e6d5a1ac24866c295",
+  "parts": [
+    {
+      "file": "dehaar.001.31b61a92f65a.bin",
+      "byteLength": 8388608,
+      "sha256": "31b61a92f65ac6b570ab7512f51fbc2f7333b71e2b9de50cec2b6671c3e3b33f"
+    },
+    {
+      "file": "dehaar.002.c2d80ffc01ac.bin",
+      "byteLength": 8388608,
+      "sha256": "c2d80ffc01ac5ed7dbb3c58f8555259f9118f1bcf0efcbbe8ab6982748fb6090"
+    },
+    {
+      "file": "dehaar.003.07fc32f9aabd.bin",
+      "byteLength": 8388608,
+      "sha256": "07fc32f9aabd012513c0775f2bf028f2d2f0f0418111e268872d5ee7b39fe703"
+    },
+    {
+      "file": "dehaar.004.cdd55dae7c72.bin",
+      "byteLength": 7124544,
+      "sha256": "cdd55dae7c72e32c199271bb54c2188bc79973b6d2ce527751ac1c4a70a43ddc"
+    }
+  ]
+}

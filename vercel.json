@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": "node scripts/verify-assets.mjs",
+  "installCommand": "echo \"No dependencies to install\"",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/assets/dehaar.manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ]
+}

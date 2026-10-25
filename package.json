@@ -1,15 +1,11 @@
 {
-  "name": "browser_checks",
+  "name": "grand-atlas-dehaar-static",
+  "private": true,
   "version": "1.0.0",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node scripts/verify-assets.mjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "playwright": "^1.64.1"
+  "engines": {
+    "node": "22.x"
   }
 }
