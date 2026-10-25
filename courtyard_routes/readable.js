@@ -1,0 +1,1685 @@
+// maps.js
+import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+function createBuilders(materials) {
+  const { stone: stone2, wood: wood2, paving: paving2, metal: metal2 } = materials;
+  function mesh(root, g, m, x = 0, y = 0, z = 0) {
+    const o = new THREE.Mesh(g, m);
+    o.position.set(x, y, z);
+    o.castShadow = o.receiveShadow = true;
+    root.add(o);
+    return o;
+  }
+  function box(root, w, h, d, x, y, z, m = wood2) {
+    const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv, p = g.attributes.position, n = g.attributes.normal;
+    for (let i = 0; i < p.count; i++) {
+      const nx = Math.abs(n.getX(i)), ny = Math.abs(n.getY(i));
+      uv.setXY(i, ny > 0.5 ? p.getX(i) / 1.4 : nx > 0.5 ? p.getZ(i) / 1.2 : p.getX(i) / 1.2, ny > 0.5 ? p.getZ(i) / 1.4 : p.getY(i) / 1.5);
+    }
+    return mesh(root, g, m, x, y, z);
+  }
+  function extrude(root, shape, depth, material, position, rotation = 0) {
+    const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 24 });
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 1.3, uv.getY(i) / 1.3);
+    const o = mesh(root, g, material, ...position);
+    o.rotation.y = rotation;
+    return o;
+  }
+  function archRing(root, width, height, position, rotation = 0, material = stone2) {
+    const r = width / 2, t = 0.15, spring = height - r, s = new THREE.Shape();
+    s.moveTo(-r - t, 0);
+    s.lineTo(-r - t, spring);
+    s.absarc(0, spring, r + t, Math.PI, 0, true);
+    s.lineTo(r + t, 0);
+    s.lineTo(r, 0);
+    s.lineTo(r, spring);
+    s.absarc(0, spring, r, 0, Math.PI, false);
+    s.lineTo(-r, 0);
+    s.closePath();
+    extrude(root, s, 0.2, material, position, rotation);
+  }
+  function wall(root, length, height, position, rotation = 0, opening = null) {
+    const half = length / 2;
+    if (!opening) {
+      const s = new THREE.Shape();
+      s.moveTo(-half, 0);
+      s.lineTo(half, 0);
+      s.lineTo(half, height);
+      s.lineTo(-half, height);
+      s.closePath();
+      extrude(root, s, 0.24, stone2, position, rotation);
+      return;
+    }
+    const { center = 0, width = 1.65, top = 2.65 } = opening, r = width / 2, spring = top - r;
+    for (const [a, b] of [[-half, center - r], [center + r, half]]) {
+      if (b <= a) continue;
+      const s = new THREE.Shape();
+      s.moveTo(a, 0);
+      s.lineTo(b, 0);
+      s.lineTo(b, height);
+      s.lineTo(a, height);
+      s.closePath();
+      extrude(root, s, 0.24, stone2, position, rotation);
+    }
+    const crown = new THREE.Shape();
+    crown.moveTo(center - r, spring);
+    crown.absarc(center, spring, r, Math.PI, 0, true);
+    crown.lineTo(center + r, height);
+    crown.lineTo(center - r, height);
+    crown.closePath();
+    extrude(root, crown, 0.24, stone2, position, rotation);
+    const base = new THREE.Vector3(center, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation).add(new THREE.Vector3(...position));
+    archRing(root, width, top, base.toArray(), rotation);
+  }
+  function floorProfile(root, width, profile) {
+    const p = [], uv = [];
+    const add = (a, b, c) => {
+      for (const v of [a, b, c]) {
+        p.push(...v);
+        uv.push(v[0] / 2, v[2] / 2);
+      }
+    };
+    for (let i = 0; i < profile.length - 1; i++) {
+      const [z0, y0] = profile[i], [z1, y1] = profile[i + 1];
+      add([-width / 2, y0, z0], [-width / 2, y1, z1], [width / 2, y1, z1]);
+      add([-width / 2, y0, z0], [width / 2, y1, z1], [width / 2, y0, z0]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    g.computeVertexNormals();
+    const o = mesh(root, g, paving2);
+    o.name = "NativeFloor";
+    return o;
+  }
+  function vault(root, width, length) {
+    const p = [], uv = [], r = width / 2, steps = 32, spring = 2.15, rise = 1.2;
+    const add = (a, b, c) => {
+      for (const v of [a, b, c]) {
+        p.push(...v);
+        uv.push(v[0] / 1.4, v[2] / 1.4);
+      }
+    };
+    for (let i = 0; i < steps; i++) {
+      const a = i / steps * Math.PI, b = (i + 1) / steps * Math.PI;
+      const q0 = [Math.cos(a) * r, spring + Math.sin(a) * rise, 0], q1 = [Math.cos(b) * r, spring + Math.sin(b) * rise, 0], q2 = [q1[0], q1[1], length], q3 = [q0[0], q0[1], length];
+      add(q0, q2, q1);
+      add(q0, q3, q2);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    g.computeVertexNormals();
+    const m = stone2.clone();
+    m.side = THREE.DoubleSide;
+    mesh(root, g, m);
+    const pathPoints = [];
+    for (let i = 0; i <= 32; i++) {
+      const a = i / 32 * Math.PI;
+      pathPoints.push(new THREE.Vector3(Math.cos(a) * r, 2.15 + Math.sin(a) * 1.2, 0));
+    }
+    for (let z = 0.2; z < length; z += 4.8) {
+      const curve = new THREE.CatmullRomCurve3(pathPoints), g2 = new THREE.TubeGeometry(curve, 36, 0.075, 7, false);
+      mesh(root, g2, stone2, 0, -0.02, z);
+    }
+  }
+  const flameMat = new THREE.MeshStandardMaterial({ color: 16765852, emissive: 16752705, emissiveIntensity: 2.2, roughness: 0.7 });
+  function sconce(root, x, z, side = 1, y = 2.12) {
+    box(root, 0.07, 0.38, 0.16, x, y, z, metal2);
+    const arm = mesh(root, new THREE.CylinderGeometry(0.023, 0.028, 0.28, 8), metal2, x - side * 0.12, y - 0.08, z);
+    arm.rotation.z = Math.PI / 2;
+    const candle = mesh(root, new THREE.CylinderGeometry(0.038, 0.043, 0.18, 10), wood2, x - side * 0.24, y + 0.04, z);
+    const flame = mesh(root, new THREE.SphereGeometry(0.033, 8, 6), flameMat, x - side * 0.24, y + 0.17, z);
+    flame.scale.y = 1.8;
+    flame.castShadow = false;
+    root.userData.lamps.push([x - side * 0.24, y + 0.22, z]);
+  }
+  function batch(root) {
+    root.updateMatrixWorld(true);
+    const buckets = /* @__PURE__ */ new Map();
+    for (const m of root.children.slice()) {
+      if (!m.isMesh || m.isInstancedMesh || Array.isArray(m.material)) continue;
+      const k = m.material.uuid + ":" + Math.floor(m.position.x / 6) + ":" + Math.floor(m.position.z / 7);
+      if (!buckets.has(k)) buckets.set(k, []);
+      buckets.get(k).push(m);
+    }
+    for (const list of buckets.values()) {
+      if (list.length < 2) continue;
+      const gs = list.map((o) => {
+        let g2 = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        g2.applyMatrix4(o.matrixWorld);
+        return g2;
+      });
+      const g = mergeGeometries(gs);
+      gs.forEach((g2) => g2.dispose());
+      if (!g) continue;
+      g.computeBoundingSphere();
+      const m = mesh(root, g, list[0].material);
+      list.forEach((o) => {
+        root.remove(o);
+        o.geometry.dispose();
+      });
+    }
+  }
+  function corridor() {
+    const root = new THREE.Group();
+    root.name = "Long Corridor — integrated architectural portals";
+    root.userData.lamps = [];
+    floorProfile(root, 4.4, [[0, 0], [42, 0]]);
+    vault(root, 4.4, 42);
+    wall(root, 16, 3.45, [2.2, 0, 8], -Math.PI / 2, { center: 4, width: 1.7, top: 2.75 });
+    wall(root, 26, 3.45, [2.2, 0, 29], -Math.PI / 2, { center: -9, width: 1.7, top: 2.75 });
+    wall(root, 32.5, 3.45, [-2.2, 0, 16.25], Math.PI / 2, { center: 16.25 - 28.8, width: 1.7, top: 2.75 });
+    wall(root, 9.5, 3.45, [-2.2, 0, 37.25], Math.PI / 2, { center: 1.05, width: 1.7, top: 2.75 });
+    wall(root, 4.4, 3.45, [0, 0, 0], 0, { center: 0, width: 1.95, top: 2.85 });
+    wall(root, 4.4, 3.45, [0, 0, 42], Math.PI);
+    for (const [x, z, sign] of [[2.2, 12, 1], [-2.2, 28.8, -1], [2.2, 20, 1]]) {
+      box(root, 1.1, 3, 0.2, x + sign * 0.5, 1.5, z - 0.96, stone2);
+      box(root, 1.1, 3, 0.2, x + sign * 0.5, 1.5, z + 0.96, stone2);
+      box(root, 0.22, 3, 2.12, x + sign * 1.1, 1.5, z, stone2);
+      const g = new THREE.PlaneGeometry(1.1, 1.72);
+      g.rotateX(-Math.PI / 2);
+      mesh(root, g, paving2, x + sign * 0.55, 0, z);
+    }
+    const stairProfile = [[0, 0]];
+    for (let k = 0; k < 12; k++) {
+      stairProfile.push([(k + 1) * 0.32, -k * 0.16], [(k + 1) * 0.32, -(k + 1) * 0.16]);
+    }
+    stairProfile.push([5, -1.92]);
+    const stair = floorProfile(root, 1.7, stairProfile);
+    stair.rotation.y = -Math.PI / 2;
+    stair.position.set(-2.2, 0, 36.2);
+    for (const dz of [-0.97, 0.97]) box(root, 5, 4.2, 0.22, -4.7, 0.18, 36.2 + dz, stone2);
+    box(root, 5, 0.15, 2.1, -4.7, 2.2, 36.2, stone2);
+    wall(root, 2.1, 4.2, [-7.2, -1.92, 36.2], Math.PI / 2, { width: 1.6, top: 2.65 });
+    function blackArch(x, y, z, rotation) {
+      const sh = new THREE.Shape();
+      sh.moveTo(-0.79, 0);
+      sh.lineTo(0.79, 0);
+      sh.lineTo(0.79, 1.86);
+      sh.absarc(0, 1.86, 0.79, 0, Math.PI, false);
+      sh.closePath();
+      const o = mesh(root, new THREE.ShapeGeometry(sh, 24), new THREE.MeshBasicMaterial({ color: 0, side: THREE.DoubleSide }), x, y, z);
+      o.rotation.y = rotation;
+      o.userData.noCollision = true;
+    }
+    blackArch(2.26, 0, 12, Math.PI / 2);
+    blackArch(2.26, 0, 20, Math.PI / 2);
+    blackArch(-2.26, 0, 28.8, Math.PI / 2);
+    blackArch(-7.12, -1.92, 36.2, Math.PI / 2);
+    for (let z = 3; z < 41; z += 4.8) {
+      sconce(root, 1.95, z, 1);
+      sconce(root, -1.95, z, -1);
+    }
+    root.userData.portals = [
+      { id: "courtyard", kind: "return", target: "hub", label: "中庭（Sponza）へ戻る", position: [0, 1.25, 0.22], stand: [0, 0, 1.65], size: [1.9, 2.5, 0.65] },
+      { id: "library", kind: "enter", target: "library", label: "大図書館（Grand Library）へ", position: [2.22, 1.25, 12], stand: [1, 0, 12], size: [0.65, 2.5, 1.6] },
+      { id: "myroom", kind: "enter", target: "myroom", label: "黒アーチ：自分の部屋へ", position: [2.22, 1.25, 20], stand: [1, 0, 20], size: [0.65, 2.5, 1.6] },
+      { id: "dungeon", kind: "enter", target: "dungeon", label: "石階段の下：地下ワインセラーへ", position: [-7.08, -0.72, 36.2], stand: [-6.25, -1.92, 36.2], size: [0.65, 2.5, 1.6] },
+      { id: "lounge", kind: "enter", target: "lounge", label: "城の休憩室（Castle Lounge）へ", position: [-2.22, 1.25, 28.8], stand: [-1, 0, 28.8], size: [0.65, 2.5, 1.6] }
+    ];
+    root.userData.spawnLocal = [0, 0, 2];
+    root.userData.lookLocal = [0, 1.65, 8];
+    batch(root);
+    return root;
+  }
+  function library() {
+    const root = new THREE.Group();
+    root.name = "Grand Library — PBR authored in meters";
+    root.userData.lamps = [];
+    floorProfile(root, 14, [[0, 0], [15.5, 0], [15.5, 0.15], [15.95, 0.15], [15.95, 0.3], [16.4, 0.3], [16.4, 0.45], [20, 0.45]]);
+    wall(root, 14, 3.45, [0, 0, 0], 0, { center: 0, width: 2, top: 2.75 });
+    wall(root, 14, 3.45, [0, 0, 20], Math.PI);
+    wall(root, 20, 3.45, [7, 0, 10], -Math.PI / 2);
+    wall(root, 20, 3.45, [-7, 0, 10], Math.PI / 2);
+    box(root, 14, 0.1, 20, 0, 3.4, 10, wood2);
+    for (let z = 1.5; z < 20; z += 3.4) {
+      box(root, 14, 0.15, 0.16, 0, 3.24, z, wood2);
+      for (const x of [-6.65, 6.65]) {
+        box(root, 0.2, 3.25, 0.22, x, 1.625, z, stone2);
+        sconce(root, x - sideSign(x) * 0.16, z, sideSign(x), 2.5);
+      }
+    }
+    const placements = [];
+    function bookcase(x, z, rotation = 0, y = 0) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      g.rotation.y = rotation;
+      root.add(g);
+      box(g, 1.85, 2.45, 0.075, 0, 1.225, -0.23, wood2);
+      for (const sx of [-0.94, 0.94]) box(g, 0.12, 2.52, 0.48, sx, 1.26, 0, wood2);
+      for (let row = 0; row < 7; row++) box(g, 1.9, 0.065, 0.48, 0, 0.14 + row * 0.355, 0, wood2);
+      box(g, 2.06, 0.13, 0.56, 0, 2.52, 0, wood2);
+      for (let row = 0; row < 6; row++) for (let k = 0; k < 16; k++) placements.push({ group: g, x: -0.83 + k * 0.109, y: 0.19 + row * 0.355, z: 0.11, w: 0.067 + k % 3 * 0.013, h: 0.22 + (k * 3 + row) % 5 * 0.016, style: (k + row * 5 + Math.round(z * 2)) % 16 });
+      return g;
+    }
+    for (const x of [-6.44, 6.44]) for (let z = 2.5; z < 15; z += 2.35) bookcase(x, z, x > 0 ? -Math.PI / 2 : Math.PI / 2);
+    for (const x of [-3.8, 3.8]) for (const z of [7, 11.8]) {
+      bookcase(x, z, 0);
+      bookcase(x, z - 0.55, Math.PI);
+    }
+    for (const x of [-5, -2.5, 2.5, 5]) bookcase(x, 19.2, 0, 0.45);
+    function desk(x, z, y = 0) {
+      const top = box(root, 2.1, 0.07, 0.9, x, y + 0.765, z, wood2);
+      top.name = "HumanDesk";
+      for (const dx of [-0.88, 0.88]) for (const dz of [-0.31, 0.31]) {
+        const leg = mesh(root, new THREE.CylinderGeometry(0.035, 0.052, 0.73, 10), wood2, x + dx, y + 0.365, z + dz);
+      }
+      for (const dz of [-0.88, 0.88]) {
+        const chair = new THREE.Group();
+        chair.position.set(x, y, z + dz);
+        root.add(chair);
+        box(chair, 0.43, 0.065, 0.45, 0, 0.4175, 0, wood2);
+        for (const a of [-0.17, 0.17]) for (const b of [-0.17, 0.17]) box(chair, 0.035, 0.42, 0.035, a, 0.21, b, wood2);
+        const sign = Math.sign(dz);
+        for (const a of [-0.18, 0.18]) box(chair, 0.035, 0.5, 0.035, a, 0.68, sign * 0.19, wood2);
+        box(chair, 0.4, 0.2, 0.05, 0, 0.86, sign * 0.19, wood2);
+      }
+    }
+    desk(-1.5, 5);
+    desk(1.5, 10);
+    desk(-1.8, 18, 0.45);
+    desk(1.8, 18, 0.45);
+    root.updateMatrixWorld(true);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    const colors = ["#5a2528", "#30443b", "#6d5236", "#334253", "#71523d", "#4a3549", "#746743", "#283e42"];
+    for (let i = 0; i < 16; i++) {
+      const x = i * 64;
+      ctx.fillStyle = colors[i % 8];
+      ctx.fillRect(x, 0, 64, 256);
+      for (let k = 0; k < 180; k++) {
+        ctx.fillStyle = `rgba(15,8,2,${0.02 + k % 5 * 0.015})`;
+        ctx.fillRect(x + k * 17 % 64, k * 29 % 256, 1, 3);
+      }
+      ctx.fillStyle = "#b49b63";
+      for (const y of [16, 26, 220, 230]) ctx.fillRect(x + 4, y, 56, 2);
+      ctx.font = "14px serif";
+      ctx.textAlign = "center";
+      ctx.fillText("ARCHIVE", x + 32, 70);
+      ctx.fillText(String(i + 1).padStart(2, "0"), x + 32, 105);
+      ctx.font = "10px serif";
+      ctx.fillText("VOLUME", x + 32, 144);
+    }
+    const atlas = new THREE.CanvasTexture(canvas);
+    atlas.colorSpace = THREE.SRGBColorSpace;
+    atlas.wrapS = atlas.wrapT = THREE.RepeatWrapping;
+    const geometry = new THREE.BoxGeometry(1, 1, 1), dummy = new THREE.Object3D(), matrix = new THREE.Matrix4();
+    for (let style = 0; style < 16; style++) {
+      const selected = placements.filter((p) => (p.style % 16 + 16) % 16 === style), map = atlas.clone();
+      map.repeat.set(1 / 16, 1);
+      map.offset.x = style / 16;
+      map.needsUpdate = true;
+      const material = new THREE.MeshStandardMaterial({ map, roughness: 0.92, normalMap: wood2.normalMap, normalScale: new THREE.Vector2(0.1, 0.1) });
+      const books = new THREE.InstancedMesh(geometry.clone(), material, selected.length);
+      books.userData.noCollision = true;
+      books.castShadow = books.receiveShadow = true;
+      selected.forEach((p, i) => {
+        dummy.position.set(p.x, p.y + p.h / 2, p.z);
+        dummy.scale.set(p.w, p.h, 0.24);
+        dummy.rotation.set(0, 0, (i % 7 - 3) * 8e-3);
+        dummy.updateMatrix();
+        matrix.multiplyMatrices(p.group.matrixWorld, dummy.matrix);
+        books.setMatrixAt(i, matrix);
+      });
+      root.add(books);
+    }
+    const flattened = new THREE.Group();
+    flattened.userData = root.userData;
+    flattened.name = root.name;
+    root.updateMatrixWorld(true);
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      if (o.isInstancedMesh) {
+        flattened.add(o.clone());
+        return;
+      }
+      const m = new THREE.Mesh(o.geometry.clone().applyMatrix4(o.matrixWorld), o.material);
+      m.castShadow = m.receiveShadow = true;
+      m.name = o.name;
+      flattened.add(m);
+    });
+    flattened.userData.tableHeight = 0.8;
+    flattened.userData.portals = [{ id: "return", kind: "return", target: "corridor", label: "大回廊へ戻る", position: [0, 1.25, 0.2], stand: [0, 0, 1.7], size: [1.9, 2.5, 0.65] }];
+    flattened.userData.spawnLocal = [0, 0, 2];
+    flattened.userData.lookLocal = [0, 1.65, 8];
+    batch(flattened);
+    return flattened;
+  }
+  function lounge() {
+    const root = new THREE.Group();
+    root.name = "Castle Lounge — integrated PBR architecture";
+    root.userData.lamps = [];
+    floorProfile(root, 6.4, [[0, 0], [11, 0]]);
+    vault(root, 6.4, 11);
+    wall(root, 6.4, 3.45, [0, 0, 0], 0, { center: 0, width: 1.95, top: 2.75 });
+    wall(root, 6.4, 3.45, [0, 0, 11], Math.PI);
+    wall(root, 11, 3.45, [3.2, 0, 5.5], -Math.PI / 2);
+    wall(root, 11, 3.45, [-3.2, 0, 5.5], Math.PI / 2);
+    const clothCanvas = document.createElement("canvas");
+    clothCanvas.width = clothCanvas.height = 128;
+    const ctx = clothCanvas.getContext("2d");
+    ctx.fillStyle = "#46534d";
+    ctx.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 128; i++) {
+      ctx.strokeStyle = i % 2 ? "#52605a" : "#3f4a44";
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 128);
+      ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(128, i);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    const tex = new THREE.CanvasTexture(clothCanvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);
+    const cloth = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.98 });
+    for (const x of [-2.95, 2.95]) for (const z of [2.6, 6, 9.5]) {
+      sconce(root, x, z, sideSign(x), 2.25);
+      box(root, 0.14, 2.35, 0.22, x, 1.175, z, stone2);
+    }
+    function sofa(x, z) {
+      for (const dx of [-0.76, 0.76]) for (const dz of [-0.26, 0.26]) mesh(root, new THREE.CylinderGeometry(0.035, 0.045, 0.21, 10), wood2, x + dx, 0.105, z + dz);
+      box(root, 1.95, 0.19, 0.82, x, 0.285, z, wood2);
+      for (const dx of [-0.48, 0.48]) {
+        const c = box(root, 0.92, 0.15, 0.69, x + dx, 0.435, z, cloth);
+        c.geometry.dispose();
+        c.geometry = new THREE.BoxGeometry(0.92, 0.15, 0.69, 3, 2, 3);
+      }
+      box(root, 1.78, 0.55, 0.14, x, 0.73, z + 0.35, cloth);
+      for (const dx of [-0.94, 0.94]) box(root, 0.13, 0.42, 0.85, x + dx, 0.55, z, wood2);
+    }
+    for (const x of [-1.72, 1.72]) {
+      sofa(x, 7.4);
+      const top = mesh(root, new THREE.CylinderGeometry(0.62, 0.62, 0.065, 48), wood2, x, 0.7675, 5.95);
+      top.name = "HumanDesk";
+      mesh(root, new THREE.CylinderGeometry(0.06, 0.11, 0.73, 16), metal2, x, 0.365, 5.95);
+      mesh(root, new THREE.CylinderGeometry(0.38, 0.42, 0.045, 32), metal2, x, 0.0225, 5.95);
+      for (const dx of [-0.2, 0.2]) {
+        const cup = mesh(root, new THREE.LatheGeometry([new THREE.Vector2(0.026, 0), new THREE.Vector2(0.035, 8e-3), new THREE.Vector2(0.038, 0.075), new THREE.Vector2(0.032, 0.078), new THREE.Vector2(0.03, 0.014)], 16), metal2, x + dx, 0.8, 5.95);
+        const handle = mesh(root, new THREE.TorusGeometry(0.024, 6e-3, 7, 12), metal2, x + dx + 0.04, 0.842, 5.95);
+      }
+    }
+    box(root, 3.2, 0.7, 0.57, 0, 0.35, 10.45, wood2);
+    box(root, 3.34, 0.1, 0.68, 0, 0.75, 10.45, wood2);
+    for (const x of [-1.1, 0, 1.1]) {
+      box(root, 0.94, 0.53, 0.045, x, 0.37, 10.13, wood2);
+      mesh(root, new THREE.SphereGeometry(0.025, 8, 6), metal2, x, 0.4, 10.09);
+    }
+    for (const x of [-2.8, 2.8]) {
+      box(root, 0.38, 1.1, 0.44, x, 0.55, 10.3, stone2);
+      mesh(root, new THREE.SphereGeometry(0.14, 16, 12), metal2, x, 1.23, 10.3);
+    }
+    root.userData.tableHeight = 0.8;
+    root.userData.portals = [{ id: "return", kind: "return", target: "corridor", label: "大回廊へ戻る", position: [0, 1.25, 0.2], stand: [0, 0, 1.7], size: [1.9, 2.5, 0.65] }];
+    root.userData.spawnLocal = [0, 0, 2];
+    root.userData.lookLocal = [0, 1.65, 8];
+    batch(root);
+    return root;
+  }
+  function myroom() {
+    const root = new THREE.Group();
+    root.name = "My Room — authored PBR + official SheenChair";
+    root.userData.lamps = [];
+    floorProfile(root, 8, [[0, 0], [12, 0]]);
+    wall(root, 8, 3.45, [0, 0, 0], 0, { width: 1.9, top: 2.75 });
+    wall(root, 8, 3.45, [0, 0, 12], Math.PI);
+    wall(root, 12, 3.45, [4, 0, 6], -Math.PI / 2);
+    wall(root, 12, 3.45, [-4, 0, 6], Math.PI / 2);
+    box(root, 8, 0.1, 12, 0, 3.4, 6, wood2);
+    for (let z = 0.7; z < 12; z += 2.1) {
+      box(root, 8, 0.15, 0.18, 0, 3.2, z, wood2);
+      for (const x of [-3.7, 3.7]) {
+        box(root, 0.15, 3.2, 0.18, x, 1.6, z, stone2);
+        sconce(root, x, z, sideSign(x), 2.25);
+      }
+    }
+    const fabric = new THREE.MeshStandardMaterial({ color: 4796712, roughness: 0.98, map: wood2.map, normalMap: wood2.normalMap, normalScale: new THREE.Vector2(0.06, 0.06) }), linen = new THREE.MeshStandardMaterial({ color: 12629146, roughness: 1, map: paving2.map });
+    box(root, 1.85, 0.24, 2.5, -2, 0.26, 8.8, wood2);
+    box(root, 1.65, 0.26, 2.2, -2, 0.45, 8.8, linen);
+    box(root, 1.68, 0.04, 1.5, -2, 0.6, 8.6, fabric);
+    for (const x of [-2.86, -1.14]) for (const z of [7.64, 9.96]) {
+      mesh(root, new THREE.CylinderGeometry(0.045, 0.065, 2.55, 14), wood2, x, 1.275, z);
+      mesh(root, new THREE.SphereGeometry(0.085, 12, 8), metal2, x, 2.62, z);
+    }
+    box(root, 2, 0.12, 2.6, -2, 2.55, 8.8, wood2);
+    box(root, 1.98, 0.055, 2.57, -2, 2.63, 8.8, fabric);
+    box(root, 1.7, 0.85, 0.1, -2, 0.8, 9.9, wood2);
+    for (const x of [-2.4, -1.6]) {
+      const pillow = box(root, 0.61, 0.13, 0.4, x, 0.65, 9.5, linen);
+      pillow.rotation.y = 0.05;
+    }
+    const desk = box(root, 2.1, 0.08, 0.85, 0.5, 0.76, 6.8, wood2);
+    desk.name = "HumanDesk";
+    for (const x of [-0.38, 1.38]) for (const z of [6.5, 7.1]) box(root, 0.075, 0.72, 0.075, x, 0.36, z, wood2);
+    for (let i = 0; i < 6; i++) box(root, 0.31, 0.04, 0.24, 0.9, 0.82 + i * 0.04, 6.85, i % 2 ? fabric : wood2);
+    for (const x of [1.75, 3.35]) box(root, 0.26, 1.28, 0.62, x, 0.64, 10.9, stone2);
+    box(root, 1.86, 0.2, 0.74, 2.55, 1.29, 10.9, stone2);
+    box(root, 1.65, 0.12, 0.78, 2.55, 0.06, 10.9, stone2);
+    box(root, 1.45, 1.3, 0.08, 2.55, 0.72, 11.17, metal2);
+    box(root, 1.25, 1.85, 0.4, 2.55, 2.25, 11.05, stone2);
+    const ember = new THREE.MeshStandardMaterial({ color: 8793874, emissive: 16736021, emissiveIntensity: 1.2, roughness: 1 });
+    for (let i = 0; i < 4; i++) {
+      const log = mesh(root, new THREE.CylinderGeometry(0.055, 0.07, 0.68, 9), wood2, 2.3 + i * 0.16, 0.18, 10.85);
+      log.rotation.z = Math.PI / 2;
+      const flame = mesh(root, new THREE.ConeGeometry(0.11, 0.36, 7), ember, 2.2 + i * 0.23, 0.35, 10.84);
+      flame.castShadow = false;
+    }
+    root.userData.lamps.push([2.55, 0.65, 10.5]);
+    root.userData.tableHeight = 0.8;
+    root.userData.portals = [{ id: "return", kind: "return", target: "corridor", label: "大回廊へ戻る", position: [0, 1.25, 0.2], stand: [0, 0, 1.7], size: [1.9, 2.5, 0.65] }];
+    root.userData.spawnLocal = [0, 0, 2];
+    root.userData.lookLocal = [0, 1.65, 7];
+    batch(root);
+    return root;
+  }
+  function sideSign(x) {
+    return x > 0 ? 1 : -1;
+  }
+  return { corridor, library, lounge, myroom };
+}
+
+// release.js
+import * as THREE2 from "three";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { MeshBVH, acceleratedRaycast } from "three-mesh-bvh";
+var $ = (id) => document.getElementById(id);
+var C = { sponza: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Sponza/glTF/Sponza.gltf", floor: 1.39896, walk: 2.7, run: 6.6, eye: 1.65, height: 1.8, radius: 0.26, step: 0.4, gravity: 22, jumpSpeed: 6.5 };
+var renderer = new THREE2.WebGLRenderer({ antialias: true, powerPreference: "high-performance", logarithmicDepthBuffer: false });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE2.SRGBColorSpace;
+renderer.toneMapping = THREE2.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE2.PCFSoftShadowMap;
+var gpuContextLost = false;
+$("view").append(renderer.domElement);
+renderer.domElement.addEventListener("webglcontextlost", (e) => {
+  e.preventDefault();
+  gpuContextLost = true;
+  ready = false;
+  failed = true;
+  controls.unlock();
+  setMenu(true);
+  stage("GPUコンテキストが失われました。メモリ不足の可能性があります。画像は縮小していません。再読込してください。");
+  $("retry").classList.remove("hidden");
+});
+var scene = new THREE2.Scene();
+scene.background = new THREE2.Color(594204);
+scene.fog = new THREE2.FogExp2(594204, 5e-3);
+var camera = new THREE2.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.2, 300);
+camera.rotation.order = "YXZ";
+scene.add(camera);
+var controls = new PointerLockControls(camera, renderer.domElement);
+var hemi = new THREE2.HemisphereLight(10995187, 3680541, 0.9);
+scene.add(hemi);
+var moon = new THREE2.DirectionalLight(10469352, 1.25);
+moon.position.set(-20, 40, 12);
+scene.add(moon);
+var spot = new THREE2.SpotLight(16766369, 48, 30, Math.PI / 7, 0.6, 1.5);
+spot.castShadow = true;
+spot.shadow.mapSize.set(1024, 1024);
+spot.shadow.bias = -12e-5;
+spot.shadow.normalBias = 0.025;
+spot.shadow.autoUpdate = false;
+spot.shadow.needsUpdate = true;
+spot.shadow.camera.near = 0.1;
+spot.shadow.camera.far = 30;
+scene.add(spot);
+var aim = new THREE2.Object3D();
+scene.add(aim);
+spot.target = aim;
+var flashOn = true;
+var flashQ = new THREE2.Quaternion();
+var world = new THREE2.Group();
+scene.add(world);
+var architecture = new THREE2.Group();
+world.add(architecture);
+var stairAssist = null;
+var edgeGuard = null;
+var collider = null;
+var ready = false;
+var failed = false;
+var elapsed = 0;
+var keys = /* @__PURE__ */ new Set();
+var velocity = new THREE2.Vector3();
+var up = new THREE2.Vector3(0, 1, 0);
+var down = new THREE2.Vector3(0, -1, 0);
+var ray = new THREE2.Raycaster();
+var feet = C.floor;
+var grounded = true;
+var verticalVelocity = 0;
+var jumpRequested = false;
+var positionCount = 0;
+var dpr = Math.min(window.devicePixelRatio, 2);
+var spawn = new THREE2.Vector3(-7, C.floor + C.eye, 0);
+var stone = null;
+var stageText = "初期化中";
+function stage(t) {
+  stageText = t;
+  $("stage").textContent = t;
+}
+function setMenu(on) {
+  $("menu").classList.toggle("hidden", !on);
+}
+function clamp(v, a, b) {
+  return Math.max(a, Math.min(b, v));
+}
+function yieldTask() {
+  return new Promise((r) => setTimeout(r, 0));
+}
+var pref = (() => {
+  try {
+    return JSON.parse(localStorage.getItem("grand-explorer-settings") || "{}");
+  } catch {
+    return {};
+  }
+})();
+$("sensitivity").value = clamp(Number(pref.sensitivity) || 0.8, 0.2, 3);
+function setSensitivity() {
+  controls.pointerSpeed = Number($("sensitivity").value);
+  $("sensitivityValue").textContent = controls.pointerSpeed.toFixed(2);
+  try {
+    localStorage.setItem("grand-explorer-settings", JSON.stringify({ sensitivity: controls.pointerSpeed }));
+  } catch {
+  }
+}
+$("sensitivity").addEventListener("input", setSensitivity);
+setSensitivity();
+function lock() {
+  if (!ready || transitioning) return;
+  setMenu(false);
+  try {
+    const p = renderer.domElement.requestPointerLock();
+    p?.catch(() => {
+      setMenu(true);
+      stage("Pointer Lockが拒否されました。ダウンロードしたHTMLをブラウザで直接開いてください。");
+    });
+  } catch (e) {
+    stage(e.message);
+    setMenu(true);
+  }
+}
+$("start").onclick = lock;
+renderer.domElement.addEventListener("click", () => {
+  if (!controls.isLocked) lock();
+});
+controls.addEventListener("lock", () => setMenu(false));
+controls.addEventListener("unlock", () => {
+  keys.clear();
+  velocity.set(0, 0, 0);
+  if (!transitioning) setMenu(true);
+});
+document.addEventListener("pointerlockerror", () => {
+  setMenu(true);
+  stage("マウスロックを許可してください。埋込画面ではなく別タブまたはダウンロードしたHTMLで開いてください。");
+});
+addEventListener("keydown", (e) => {
+  if (controls.isLocked && ["KeyW", "KeyA", "KeyS", "KeyD", "Space"].includes(e.code)) e.preventDefault();
+  keys.add(e.code);
+  if (e.code === "KeyE" && !e.repeat && controls.isLocked && !transitioning) useDoor();
+  if (e.code === "Space" && !e.repeat && controls.isLocked && !transitioning) {
+    e.preventDefault();
+    jumpRequested = true;
+  }
+  if (e.code === "Escape" && controls.isLocked) document.exitPointerLock();
+  if ((e.code === "KeyF" || e.code === "KeyL") && !e.repeat && controls.isLocked) {
+    flashOn = !flashOn;
+    spot.visible = flashOn;
+  }
+});
+addEventListener("keyup", (e) => keys.delete(e.code));
+addEventListener("blur", () => {
+  keys.clear();
+  if (controls.isLocked) controls.unlock();
+});
+$("reset").onclick = () => {
+  reset();
+  lock();
+};
+$("retry").onclick = () => location.reload();
+$("quality").onchange = () => {
+  spot.castShadow = $("quality").value !== "off";
+  spot.shadow.needsUpdate = true;
+};
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  dpr = Math.min(window.devicePixelRatio, 2);
+  renderer.setPixelRatio(dpr);
+});
+function reset() {
+  camera.position.copy(activeSpawn || spawn);
+  if (activeLook) camera.lookAt(activeLook);
+  else camera.lookAt(7, C.floor + 2.1, 0);
+  flashQ.copy(camera.quaternion);
+  feet = camera.position.y - C.eye;
+  grounded = true;
+  verticalVelocity = 0;
+  jumpRequested = false;
+  velocity.set(0, 0, 0);
+}
+async function pbr(id, repeat = 1) {
+  const loader = new THREE2.TextureLoader();
+  loader.setCrossOrigin("anonymous");
+  const urls = [["diff", "2k"], ["rough", "1k"], ["nor_gl", "1k"]].map(([kind, res]) => `https://dl.polyhaven.org/file/ph-assets/Textures/jpg/${res}/${id}/${id}_${kind}_${res}.jpg`);
+  const textures = await Promise.all(urls.map((url) => loader.loadAsync(url)));
+  textures.forEach((t, i) => {
+    t.colorSpace = i === 0 ? THREE2.SRGBColorSpace : THREE2.NoColorSpace;
+    t.wrapS = t.wrapT = THREE2.RepeatWrapping;
+    t.repeat.set(repeat, repeat);
+    enhanceTexture(t);
+  });
+  return new THREE2.MeshStandardMaterial({ map: textures[0], roughnessMap: textures[1], normalMap: textures[2], normalScale: new THREE2.Vector2(0.45, 0.45), roughness: 1 });
+}
+function enhanceTexture(texture) {
+  if (texture.image && Math.max(texture.image.width || 0, texture.image.height || 0) > renderer.capabilities.maxTextureSize) throw Error("原画像がGPUの最大テクスチャサイズを超えています。縮小せず読み込みを中断しました。");
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE2.LinearMipmapLinearFilter;
+  texture.magFilter = THREE2.LinearFilter;
+  texture.needsUpdate = true;
+}
+function releaseUploadedBitmaps(root) {
+  const images = /* @__PURE__ */ new Map();
+  root.traverse((o) => {
+    for (const m of [].concat(o.material || [])) for (const t of Object.values(m)) if (t?.isTexture && typeof t.image?.close === "function") {
+      let list = images.get(t.image);
+      if (!list) images.set(t.image, list = /* @__PURE__ */ new Set());
+      list.add(t);
+    }
+  });
+  for (const [image, textures] of images) {
+    const uploaded = /* @__PURE__ */ new Set(), size = [image.width, image.height];
+    for (const t of textures) {
+      const previous = t.onUpdate;
+      t.userData.sourceWidth = size[0];
+      t.userData.sourceHeight = size[1];
+      t.onUpdate = (texture) => {
+        previous?.(texture);
+        texture.userData.gpuUploaded = size;
+        uploaded.add(texture);
+        if (uploaded.size === textures.size) {
+          image.close();
+          for (const tex of textures) tex.userData.cpuBitmapReleased = true;
+        }
+      };
+    }
+  }
+}
+function normalizeAsset(r, span, cx, baseY) {
+  r.updateMatrixWorld(true);
+  let box = new THREE2.Box3().setFromObject(r), size = box.getSize(new THREE2.Vector3());
+  r.scale.multiplyScalar(span / Math.max(size.x, size.z));
+  r.updateMatrixWorld(true);
+  box.setFromObject(r);
+  const c = box.getCenter(new THREE2.Vector3());
+  r.position.x += cx - c.x;
+  r.position.z -= c.z;
+  r.position.y += baseY - box.min.y;
+  r.updateMatrixWorld(true);
+}
+async function buildCollision() {
+  if (AREA_CONFIG[activeArea]?.chain) return buildIndexedCollision();
+  world.updateMatrixWorld(true);
+  const parts = [];
+  let total = 0;
+  world.traverse((o) => {
+    if (!o.isMesh || o.userData.noCollision) return;
+    let g = o.geometry.clone();
+    if (g.index) {
+      const prev = g;
+      g = g.toNonIndexed();
+      prev.dispose();
+    }
+    if (o.isInstancedMesh) {
+      const im = new THREE2.Matrix4(), wm = new THREE2.Matrix4();
+      for (let k = 0; k < o.count; k++) {
+        o.getMatrixAt(k, im);
+        wm.multiplyMatrices(o.matrixWorld, im);
+        const t = g.clone().applyMatrix4(wm);
+        const a = new Float32Array(t.attributes.position.array);
+        parts.push(a);
+        total += a.length;
+        t.dispose();
+      }
+    } else {
+      g.applyMatrix4(o.matrixWorld);
+      const a = new Float32Array(g.attributes.position.array);
+      parts.push(a);
+      total += a.length;
+    }
+    g.dispose();
+  });
+  const data = new Float32Array(total);
+  let at = 0;
+  for (const a of parts) {
+    data.set(a, at);
+    at += a.length;
+  }
+  const geo = new THREE2.BufferGeometry();
+  geo.setAttribute("position", new THREE2.BufferAttribute(data, 3));
+  geo.computeVertexNormals();
+  await yieldTask();
+  geo.boundsTree = new MeshBVH(geo, { maxLeafTris: 10 });
+  collider = new THREE2.Mesh(geo, new THREE2.MeshBasicMaterial({ side: THREE2.DoubleSide }));
+  collider.raycast = acceleratedRaycast;
+  collider.updateMatrixWorld(true);
+  positionCount = total / 9;
+}
+async function buildIndexedCollision() {
+  world.updateMatrixWorld(true);
+  const meshes = [];
+  let vertexCount = 0, indexCount = 0;
+  world.traverse((o) => {
+    if (o.isMesh && !o.userData.noCollision) {
+      meshes.push(o);
+      vertexCount += o.geometry.attributes.position.count;
+      indexCount += o.geometry.index?.count || o.geometry.attributes.position.count;
+    }
+  });
+  const positions = new Float32Array(vertexCount * 3), indices = new Uint32Array(indexCount), v = new THREE2.Vector3();
+  let vertexOffset = 0, indexOffset = 0;
+  for (const o of meshes) {
+    const p = o.geometry.attributes.position, ix = o.geometry.index;
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+      v.toArray(positions, (vertexOffset + i) * 3);
+    }
+    for (let i = 0; i < (ix?.count || p.count); i++) indices[indexOffset++] = vertexOffset + (ix ? ix.getX(i) : i);
+    vertexOffset += p.count;
+    await yieldTask();
+  }
+  const geometry = new THREE2.BufferGeometry();
+  geometry.setAttribute("position", new THREE2.BufferAttribute(positions, 3));
+  geometry.setIndex(new THREE2.BufferAttribute(indices, 1));
+  geometry.boundsTree = new MeshBVH(geometry, { maxLeafTris: 16 });
+  collider = new THREE2.Mesh(geometry, new THREE2.MeshBasicMaterial({ side: THREE2.DoubleSide }));
+  collider.raycast = acceleratedRaycast;
+  collider.updateMatrixWorld(true);
+  positionCount = indexCount / 3;
+}
+function nativeCast(origin, dir, length, first = true) {
+  if (!collider) return [];
+  ray.set(origin, dir);
+  ray.near = 1e-3;
+  ray.far = length;
+  ray.firstHitOnly = first;
+  return ray.intersectObject(collider, false);
+}
+function cast(origin, dir, length, first = true) {
+  const r = stairAssist, hits = nativeCast(origin, dir, length, r ? false : first);
+  if (!r) return hits;
+  return hits.filter((h) => r.axis === "x" ? !(Math.abs(h.face.normal.x) > 0.9 && Math.abs(h.point.z - r.z) < r.halfWidth && h.point.x >= r.x0 - 0.03 && h.point.x <= r.x1 && h.point.y <= 0.02) : !(Math.abs(h.face.normal.z) > 0.9 && Math.abs(h.point.x) < r.halfWidth && h.point.z >= r.z0 && h.point.z <= r.z1 + 0.03 && h.point.y <= r.y1 + 0.02));
+}
+function floorAt(x, z, from, max) {
+  const native = nativeCast(new THREE2.Vector3(x, from, z), down, max, false).find((h) => h.face.normal.y > 0.62), r = stairAssist;
+  if (r) {
+    const inside = r.axis === "x" ? Math.abs(z - r.z) < r.halfWidth && x >= r.x0 && x <= r.x1 : Math.abs(x) < r.halfWidth && z >= r.z0 && z <= r.z1;
+    if (inside) {
+      const t = r.axis === "x" ? (x - r.x0) / (r.x1 - r.x0) : (z - r.z0) / (r.z1 - r.z0), y = THREE2.MathUtils.lerp(r.y0, r.y1, t);
+      if (from >= y && from - y <= max && (!native || native.point.y < y)) return { point: new THREE2.Vector3(x, y, z), distance: from - y, face: { normal: up } };
+    }
+  }
+  return native;
+}
+var directions = Array.from({ length: 8 }, (_, k) => new THREE2.Vector3(Math.cos(k * Math.PI / 4), 0, Math.sin(k * Math.PI / 4)));
+var testOrigin = new THREE2.Vector3();
+function withinFloorBoundary(x, z) {
+  if (!edgeGuard) return true;
+  const b = edgeGuard.box, r = C.radius + 0.03, y = edgeGuard.dynamicFloor ? feet : edgeGuard.y;
+  if (x < b.min.x + r || x > b.max.x - r || z < b.min.z + r || z > b.max.z - r) return false;
+  for (const [dx, dz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) {
+    const f = floorAt(x + dx, z + dz, y + 0.5, 1.15);
+    if (!f || f.point.y < y - 0.55) return false;
+  }
+  return true;
+}
+function bodyClear(x, y, z) {
+  if (cast(testOrigin.set(x, y + 0.06, z), up, C.height - 0.06).length) return false;
+  for (const h of [0.12, 0.85, 1.65]) for (let k = 0; k < 8; k += h === 0.85 ? 1 : 2) if (cast(testOrigin.set(x, y + h, z), directions[k], C.radius).length) return false;
+  return true;
+}
+function supportAt(x, z, y, maxRise = C.step) {
+  return floorAt(x, z, y + maxRise + 0.035, maxRise + 0.55);
+}
+function stepTarget(x, z) {
+  const f = supportAt(x, z, feet);
+  if (!f) return null;
+  const delta = f.point.y - feet;
+  if (delta > C.step + 1e-3 || delta < -0.43) return null;
+  return bodyClear(x, f.point.y, z) ? f.point.y : null;
+}
+function horizontalStep(axis, distance) {
+  if (Math.abs(distance) < 1e-8) return;
+  const target = camera.position.clone();
+  target[axis] += distance;
+  if (!withinFloorBoundary(target.x, target.z)) return;
+  let targetFeet = feet;
+  const stepY = grounded ? stepTarget(target.x, target.z) : null;
+  if (stepY !== null) targetFeet = stepY;
+  if (!bodyClear(target.x, targetFeet, target.z)) return;
+  const dir = new THREE2.Vector3();
+  dir[axis] = Math.sign(distance);
+  for (const h of [0.12, 0.85, 1.65]) if (cast(testOrigin.set(camera.position.x, Math.max(feet, targetFeet) + h, camera.position.z), dir, Math.abs(distance) + C.radius * 0.8).length) return;
+  camera.position[axis] = target[axis];
+  if (stepY !== null) {
+    feet = stepY;
+    verticalVelocity = 0;
+    grounded = true;
+  } else if (grounded) {
+    const f = floorAt(target.x, target.z, feet + 0.035, 0.11);
+    if (f && Math.abs(f.point.y - feet) < 0.07) feet = f.point.y;
+    else grounded = false;
+  }
+}
+function integrateVertical(dt) {
+  if (grounded) {
+    const f = floorAt(camera.position.x, camera.position.z, feet + 0.035, 0.12);
+    if (f && Math.abs(f.point.y - feet) < 0.08) {
+      feet = f.point.y;
+      verticalVelocity = 0;
+      return;
+    }
+    grounded = false;
+  }
+  verticalVelocity -= C.gravity * dt;
+  const travel = verticalVelocity * dt;
+  if (travel > 0) {
+    const ceiling = cast(testOrigin.set(camera.position.x, feet + C.height, camera.position.z), up, travel + 0.025)[0];
+    if (ceiling) {
+      feet += Math.max(0, ceiling.distance - 0.025);
+      verticalVelocity = 0;
+    } else feet += travel;
+  } else {
+    const f = floorAt(camera.position.x, camera.position.z, feet + 0.035, -travel + 0.075);
+    if (f && f.point.y <= feet + 0.04 && f.point.y >= feet + travel - 0.035) {
+      feet = f.point.y;
+      verticalVelocity = 0;
+      grounded = true;
+    } else feet += travel;
+  }
+  if (feet < -20) {
+    reset();
+  }
+}
+function move(dt) {
+  if (jumpRequested) {
+    if (grounded) {
+      verticalVelocity = C.jumpSpeed;
+      grounded = false;
+    }
+    jumpRequested = false;
+  }
+  const f = new THREE2.Vector3();
+  camera.getWorldDirection(f);
+  f.y = 0;
+  f.normalize();
+  const r = new THREE2.Vector3().crossVectors(f, up);
+  let x = Number(keys.has("KeyD")) - Number(keys.has("KeyA")), z = Number(keys.has("KeyW")) - Number(keys.has("KeyS"));
+  const len = Math.hypot(x, z);
+  if (len > 1) {
+    x /= len;
+    z /= len;
+  }
+  const speed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? C.run : C.walk;
+  velocity.lerp(f.multiplyScalar(z * speed).addScaledVector(r, x * speed), 1 - Math.exp(-13 * dt));
+  const n = Math.max(1, Math.ceil(dt / (1 / 120)), Math.ceil(velocity.length() * dt / 0.065));
+  for (let k = 0; k < n; k++) {
+    const step = dt / n;
+    horizontalStep("x", velocity.x * step);
+    horizontalStep("z", velocity.z * step);
+    integrateVertical(step);
+  }
+  camera.position.y = THREE2.MathUtils.damp(camera.position.y, feet + C.eye, grounded ? 20 : 34, dt);
+}
+var MODEL_ASSET_BASE = new URL("./assets/", location.href).href;
+var AREA_CONFIG = {
+  hub: { name: "Sponza — 中庭", url: C.sponza, span: 42, baseY: 0, spawn: [-7, C.floor, 0], look: [7, C.floor + 1.65, 0] },
+  corridor: { name: "Long Corridor — 大回廊", built: "corridor", targetHeight: 3.45, baseY: 0 },
+  library: { name: "Grand Library — 大図書館", built: "library", targetHeight: 3.45, baseY: 0 },
+  lounge: { name: "Castle Lounge — 城の休憩室", built: "lounge", targetHeight: 3.45, baseY: 0 },
+  myroom: { name: "My Room — 自分の部屋（PBR建築＋公式SheenChair）", built: "myroom", targetHeight: 3.45, baseY: 0 },
+  dungeon: { name: "地下ワインセラー", url: "https://raw.githubusercontent.com/Radoslav02/winery-demo/HEAD/public/models/cellar-opt.glb", targetHeight: 3.3, baseY: 0 },
+  room1: { name: "新マップ1 — 33qxzs", url: "https://files.catbox.moe/33qxzs.glb", chain: true, targetHeight: 5.709687522, floorRef: 0.476, previous: "hub", next: "room2", doors: [{ id: "return", point: [1.516, 1.8, 1.807], normal: [-0.668, 0, -0.744], width: 1.25, height: 2.55 }, { id: "next", point: [-5.88, 1.8, 1.98], normal: [0.745, 0, -0.668], width: 1.22, height: 2.55 }] },
+  room2: { name: "新マップ2 — pt7rsw", url: "https://files.catbox.moe/pt7rsw.glb", chain: true, targetHeight: 4.708696386, floorRef: 0.254, previous: "room1", next: "room3", doors: [{ id: "return", point: [-1.64, 1.55, -2.175], normal: [0, 0, 1], width: 1.25, height: 2.5 }, { id: "next", point: [3.055, 1.35, -0.3], normal: [-1, 0, 0], width: 0.88, height: 2.15 }] },
+  room3: { name: "新マップ3 — wth21z", url: "https://files.catbox.moe/wth21z.glb", chain: true, targetHeight: 13.456366956, floorRef: -1.3, previous: "room2", doors: [{ id: "return", point: [-8.438, -0.06, -7.08], normal: [1, 0, 0], width: 1.15, height: 2.25 }] },
+  hintze: { name: "Hintze Hall — 自然史博物館の大ホール", url: "https://files.catbox.moe/8ffm68.glb", chain: true, dynamicFloor: true, targetHeight: 22.31535793795314, floorRef: 0.35, previous: "hub", next: "dehaar", doors: [{ id: "return", point: [24.1, 1.9, -1], normal: [-1, 0, 0], width: 1.35, height: 2.7 }, { id: "next", point: [23.27, 1.85, -6], normal: [-1, 0, 0], width: 1.05, height: 2.7 }] },
+  dehaar: { name: "De Haar Castle — デ・ハール城と庭園", url: MODEL_ASSET_BASE + "dehaar.glb", chain: true, dynamicFloor: true, outdoors: true, lookAt: [22, 12, 5], targetHeight: 49.01254581931323, floorRef: 1.8, previous: "hub", doors: [{ id: "return", point: [-11.7, 3.5, 59], normal: [0.70710678, 0, 0.70710678], width: 1.7, height: 3.2, open: true, returnTo: "hub" }] },
+  chair: { name: "公式SheenChair", url: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/SheenChair.glb" }
+};
+var rawCache = /* @__PURE__ */ new Map();
+var routeStack = [];
+var activeArea = "hub";
+var activeSpawn = null;
+var activeLook = null;
+var transitioning = false;
+var portals = [];
+var selectedPortal = null;
+var interactionTime = 0;
+var closedUntil = 0;
+var wood = null;
+var paving = null;
+var metal = null;
+var builders = null;
+var scaleReport = null;
+var lampAnchors = [];
+var sharedMaterials = /* @__PURE__ */ new Set();
+var sharedTextures = /* @__PURE__ */ new Set();
+var torchLights = [new THREE2.PointLight(16755808, 0, 6.5, 2), new THREE2.PointLight(16756068, 0, 6.5, 2)];
+torchLights.forEach((l) => scene.add(l));
+function rememberShared(material) {
+  sharedMaterials.add(material);
+  for (const v of Object.values(material)) if (v?.isTexture) sharedTextures.add(v);
+  return material;
+}
+var PROP_CONFIG = { barrel: { name: "外部ワイン樽", url: "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/wine_barrel_01/wine_barrel_01_1k.gltf", manifest: "https://api.polyhaven.com/files/wine_barrel_01" } };
+var ktx2 = new KTX2Loader().setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/basis/").setWorkerLimit(2);
+ktx2.detectSupport(renderer);
+async function externalScene(key) {
+  const cfg = AREA_CONFIG[key] || PROP_CONFIG[key], controller = new AbortController(), blobs = [], resources = /* @__PURE__ */ new Map();
+  let timedOut = false;
+  const work = (async () => {
+    async function get(url) {
+      if (rawCache.has(url)) return rawCache.get(url);
+      const response = await fetch(url, { signal: controller.signal, mode: "cors" });
+      if (!response.ok) throw Error(`HTTP ${response.status}: ${url}`);
+      const bytes = await response.arrayBuffer();
+      if (!(cfg.chain && url === cfg.url)) rawCache.set(url, bytes);
+      return bytes;
+    }
+    try {
+      stage(cfg.name + "：公開アセットを取得中…");
+      $("fadeDetail").textContent = cfg.name;
+      if (cfg.chain) {
+        for (const url of [...rawCache.keys()]) if (Object.values(AREA_CONFIG).some((c) => c.chain && c.url === url) && url !== cfg.url) rawCache.delete(url);
+      }
+      let bytes = await get(cfg.url);
+      if (bytes.byteLength < 20) throw Error("モデルの応答が空、または破損しています");
+      if (new DataView(bytes).getUint32(0, true) === 1179937895 && new DataView(bytes).getUint32(8, true) !== bytes.byteLength) throw Error("GLBが途中で切れています。正常なファイルに差し替えてください");
+      if (new DataView(bytes).getUint32(0, true) !== 1179937895) {
+        const json = JSON.parse(new TextDecoder().decode(bytes));
+        let includes = {};
+        if (cfg.manifest) {
+          const manifest = JSON.parse(new TextDecoder().decode(await get(cfg.manifest)));
+          includes = manifest.gltf["1k"].gltf.include;
+        }
+        const paths = [...new Set([...json.buffers || [], ...json.images || []].map((r) => r.uri).filter((u) => u && !u.startsWith("data:") && !u.startsWith("blob:")))];
+        let next = 0, done = 0;
+        await Promise.all(Array.from({ length: Math.min(6, paths.length) }, async () => {
+          while (next < paths.length) {
+            const path = paths[next++], url = new URL(path, cfg.url).href, real = includes[path]?.url || url, data = await get(real), blob = URL.createObjectURL(new Blob([data]));
+            blobs.push(blob);
+            resources.set(url, blob);
+            $("fadeDetail").textContent = cfg.name + " " + ++done + "/" + paths.length;
+          }
+        }));
+      }
+      const manager = new THREE2.LoadingManager();
+      manager.setURLModifier((url) => resources.get(url) || url);
+      const loader = new GLTFLoader(manager), draco = new DRACOLoader();
+      draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+      loader.setDRACOLoader(draco);
+      loader.setKTX2Loader(ktx2);
+      loader.setMeshoptDecoder(MeshoptDecoder);
+      let parseTimer;
+      const parsing = loader.parseAsync(bytes, new URL(".", cfg.url).href);
+      try {
+        const gltf = await Promise.race([parsing, new Promise((_, reject) => {
+          parseTimer = setTimeout(() => {
+            parsing.then((g) => releaseDetached(g.scene)).catch(() => {
+            });
+            reject(Error("解析が60秒を超えました"));
+          }, 6e4);
+        })]);
+        if (timedOut) {
+          releaseDetached(gltf.scene);
+          throw Error("ロード中断");
+        }
+        return gltf.scene;
+      } finally {
+        clearTimeout(parseTimer);
+        draco.dispose();
+      }
+    } finally {
+      blobs.forEach((url) => URL.revokeObjectURL(url));
+    }
+  })();
+  let timer;
+  try {
+    return await Promise.race([work, new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        reject(Error("外部アセット取得が120秒を超えました"));
+      }, 12e4);
+    })]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function releaseDetached(root) {
+  const images = /* @__PURE__ */ new Set();
+  root.traverse((o) => {
+    o.geometry?.dispose();
+    for (const m of [].concat(o.material || [])) {
+      for (const v of Object.values(m)) if (v?.isTexture) {
+        v.dispose();
+        if (v.image) images.add(v.image);
+      }
+      m.dispose();
+    }
+  });
+  images.forEach((i) => i.close?.());
+}
+function disposeArea() {
+  stairAssist = null;
+  edgeGuard = null;
+  portals = [];
+  selectedPortal = null;
+  lampAnchors = [];
+  torchLights.forEach((l) => l.intensity = 0);
+  $("doorPrompt").textContent = "";
+  const gs = /* @__PURE__ */ new Set(), ms = /* @__PURE__ */ new Set(), ts = /* @__PURE__ */ new Set();
+  for (const group of architecture.children.slice()) {
+    architecture.remove(group);
+    group.traverse((o) => {
+      if (o.geometry) gs.add(o.geometry);
+      for (const m of [].concat(o.material || [])) {
+        ms.add(m);
+        for (const v of Object.values(m)) if (v?.isTexture) ts.add(v);
+      }
+    });
+  }
+  gs.forEach((g) => g.dispose());
+  ms.forEach((m) => {
+    if (!sharedMaterials.has(m)) m.dispose();
+  });
+  const images = /* @__PURE__ */ new Set();
+  ts.forEach((t) => {
+    if (!sharedTextures.has(t)) {
+      t.dispose();
+      if (t.image) images.add(t.image);
+    }
+  });
+  images.forEach((i) => {
+    if (i.close) i.close();
+  });
+  if (collider) {
+    collider.geometry.boundsTree = null;
+    collider.geometry.dispose();
+    collider.material.dispose();
+    collider = null;
+  }
+  renderer.renderLists.dispose();
+  ready = false;
+}
+function cellarScale(root, cfg) {
+  root.scale.setScalar(1);
+  root.updateMatrixWorld(true);
+  const before = new THREE2.Box3().setFromObject(root), height = before.max.y - before.min.y;
+  let floorY = null, deskY = null, tableBase = null, deskBox = null;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const b = new THREE2.Box3().setFromObject(o);
+    if (/FloorTiles/i.test(o.name)) floorY = b.max.y;
+    if (/WhiteMarble|TastingTable/i.test(o.name)) {
+      deskY = b.max.y;
+      tableBase = b.min.y;
+      deskBox = b.clone();
+    }
+    if (/Paris_Table_02/i.test(o.name)) {
+      if (deskY == null || b.max.y < deskY) {
+        deskY = b.max.y;
+        tableBase = b.min.y;
+        deskBox = b.clone();
+      }
+    }
+  });
+  if (floorY == null && deskBox) {
+    const probe = new THREE2.Raycaster(), samples = [], margin = (deskY - tableBase) * 0.12;
+    probe.near = 1e-3;
+    probe.far = (deskY - tableBase) * 1.5;
+    for (const x of [deskBox.min.x - margin, deskBox.max.x + margin]) for (const z of [deskBox.min.z - margin, deskBox.max.z + margin]) {
+      probe.set(new THREE2.Vector3(x, deskY - 0.06, z), down);
+      const hit = probe.intersectObject(root, true).find((h) => h.face.normal.clone().transformDirection(h.object.matrixWorld).y > 0.62 && Math.abs(h.point.y - tableBase) < (deskY - tableBase) * 0.3);
+      if (hit) samples.push(hit.point.y);
+    }
+    if (samples.length) {
+      samples.sort((a, b) => a - b);
+      floorY = samples[Math.floor(samples.length / 2)];
+    }
+  }
+  if (floorY == null) floorY = tableBase ?? before.min.y;
+  let factor = deskY != null ? 0.75 / (deskY - floorY) : cfg.targetHeight / height;
+  if (!Number.isFinite(factor) || factor <= 0) throw Error("モデルの実寸を取得できません");
+  root.scale.setScalar(factor);
+  root.updateMatrixWorld(true);
+  const box = new THREE2.Box3().setFromObject(root), center = box.getCenter(new THREE2.Vector3());
+  root.position.x -= center.x;
+  root.position.z -= center.z;
+  root.position.y -= box.min.y;
+  root.updateMatrixWorld(true);
+  scaleReport = { factor, bboxHeight: height * factor, tableHeight: deskY == null ? null : (deskY - floorY) * factor, eyeHeight: C.eye, floorY: (floorY - before.min.y) * factor, scaleBasis: deskY == null ? "bbox" : "authored tabletop / floor" };
+}
+async function addExternalBarrels(root) {
+  const prototype = await externalScene("barrel");
+  prototype.updateMatrixWorld(true);
+  let box = new THREE2.Box3().setFromObject(prototype);
+  prototype.scale.setScalar(1 / (box.max.y - box.min.y));
+  prototype.updateMatrixWorld(true);
+  box.setFromObject(prototype);
+  const center = box.getCenter(new THREE2.Vector3());
+  prototype.position.x -= center.x;
+  prototype.position.z -= center.z;
+  prototype.position.y -= box.min.y;
+  prototype.updateMatrixWorld(true);
+  const roomBox = new THREE2.Box3().setFromObject(root), size = roomBox.getSize(new THREE2.Vector3()), y = scaleReport.floorY;
+  for (const side of [-1, 1]) for (const fraction of [-0.28, -0.1, 0.33]) {
+    const barrel = prototype.clone(true);
+    barrel.position.add(new THREE2.Vector3(side * size.x * 0.23, y, size.z * fraction));
+    barrel.updateMatrixWorld(true);
+    root.attach(barrel);
+  }
+  prototype.clear();
+}
+function humanScale(root, cfg) {
+  root.scale.setScalar(1);
+  root.updateMatrixWorld(true);
+  const before = new THREE2.Box3().setFromObject(root), height = before.max.y - before.min.y;
+  let factor = cfg.targetHeight / height, deskTop = null;
+  if (root.userData.tableHeight != null) deskTop = before.min.y + root.userData.tableHeight;
+  else root.traverse((o) => {
+    if (o.isMesh && /WhiteMarble|HumanDesk|TableTop/i.test(o.name)) {
+      const b = new THREE2.Box3().setFromObject(o);
+      if (!deskTop || b.max.y < deskTop) deskTop = b.max.y;
+    }
+  });
+  if (deskTop != null && deskTop - before.min.y > 0.1) {
+    const waistScale = 0.8 / (deskTop - before.min.y);
+    factor = clamp(waistScale, 3 / height, 3.5 / height);
+  }
+  root.scale.setScalar(factor);
+  root.updateMatrixWorld(true);
+  let box = new THREE2.Box3().setFromObject(root), center = box.getCenter(new THREE2.Vector3());
+  root.position.x -= center.x;
+  root.position.z -= center.z;
+  root.position.y += (cfg.baseY || 0) - box.min.y;
+  root.updateMatrixWorld(true);
+  scaleReport = { factor, bboxHeight: height * factor, ceilingTarget: [3, 3.5], tableHeight: deskTop == null ? null : (deskTop - before.min.y) * factor, eyeHeight: C.eye };
+}
+function nativeOpening(id, target, label, position, stand, size, kind = "enter") {
+  const center = new THREE2.Vector3(...position), s = new THREE2.Vector3(...size);
+  portals.push({ id, target, label, kind, position: center, stand, box: new THREE2.Box3().setFromCenterAndSize(center, s) });
+}
+function installHubOpening(root) {
+  let source;
+  root.traverse((o) => {
+    if (!source && o.isMesh) source = o;
+  });
+  const door = source.localToWorld(new THREE2.Vector3(-64, 100, 567));
+  const stand = new THREE2.Vector3(door.x, 0, door.z - 1.05), f = floorAt(stand.x, stand.z, 3, 4);
+  if (!f || !bodyClear(stand.x, f.point.y, stand.z)) throw Error("既存鉄扉前の足場がありません");
+  nativeOpening("ironDoor", "corridor", "鉄扉を開けて大回廊へ", [door.x, f.point.y + 1.15, door.z - 0.18], [stand.x, f.point.y, stand.z], [1.45, 2.4, 0.55]);
+}
+function archShape(radius, spring) {
+  const shape = new THREE2.Shape();
+  shape.moveTo(-radius, 0);
+  shape.lineTo(radius, 0);
+  shape.lineTo(radius, spring);
+  shape.absarc(0, spring, radius, 0, Math.PI, false);
+  shape.closePath();
+  return shape;
+}
+function addLionArch() {
+  const gate = new THREE2.Group();
+  gate.name = "LionWallPortal";
+  gate.position.set(14.2, C.floor, 0);
+  gate.rotation.y = Math.PI / 2;
+  const black = new THREE2.Mesh(new THREE2.ExtrudeGeometry(archShape(1.3, 2.4), { depth: 1.4, bevelEnabled: false, curveSegments: 32 }), new THREE2.MeshBasicMaterial({ color: 0, side: THREE2.DoubleSide }));
+  gate.add(black);
+  const outline = archShape(1.65, 2.4), hole = new THREE2.Path(archShape(1.3, 2.4).getPoints(48).reverse());
+  outline.holes.push(hole);
+  const frame = new THREE2.Mesh(new THREE2.ExtrudeGeometry(outline, { depth: 0.5, bevelEnabled: false, curveSegments: 32 }), new THREE2.MeshStandardMaterial({ map: stone.map, normalMap: stone.normalMap, roughnessMap: stone.roughnessMap, color: 11183251, roughness: 1 }));
+  frame.position.z = -0.12;
+  frame.castShadow = true;
+  frame.receiveShadow = true;
+  gate.add(frame);
+  architecture.add(gate);
+}
+function installChainGate() {
+  const x = 13.2, z = 0, f = floorAt(x, z, C.floor + 0.45, 1.1);
+  if (!f || !bodyClear(x, f.point.y, z)) throw Error("ライオン前に安全な足場がありません");
+  nativeOpening("chainGate", "room1", "大広間へ", [14.16, f.point.y + 1.6, z], [x, f.point.y, z], [0.08, 3.65, 2.6]);
+}
+function installReservedDoor(root) {
+  let source;
+  root.traverse((o) => {
+    if (!source && o.isMesh) source = o;
+  });
+  const door = source.localToWorld(new THREE2.Vector3(-64, 100, -650)), stand = new THREE2.Vector3(door.x, 0, door.z + 1.05), f = floorAt(stand.x, stand.z, 3, 4);
+  if (!f || !bodyClear(stand.x, f.point.y, stand.z)) throw Error("反対側の鉄扉前に安全な足場がありません");
+  nativeOpening("door2", "hintze", "自然史博物館の大ホールへ", [door.x, f.point.y + 1.15, door.z + 0.18], [stand.x, f.point.y, stand.z], [1.45, 2.4, 0.55], "enter");
+}
+function scaleChain(root, cfg) {
+  root.scale.setScalar(1);
+  root.updateMatrixWorld(true);
+  const before = new THREE2.Box3().setFromObject(root), size = before.getSize(new THREE2.Vector3());
+  const factor = cfg.targetHeight / size.y;
+  root.scale.setScalar(factor);
+  root.updateMatrixWorld(true);
+  const box = new THREE2.Box3().setFromObject(root), center = box.getCenter(new THREE2.Vector3());
+  root.position.x -= center.x;
+  root.position.z -= center.z;
+  root.position.y -= cfg.floorRef * factor;
+  root.updateMatrixWorld(true);
+  scaleReport = { factor, bboxHeight: size.y * factor, eyeHeight: C.eye, floorY: 0, sourceFloor: cfg.floorRef, scaleBasis: "full BBox / surveyed original scan dimensions" };
+  const seen = /* @__PURE__ */ new Map();
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = [].concat(o.material).map((m) => {
+      if (!m.isMeshBasicMaterial) return m;
+      if (seen.has(m)) return seen.get(m);
+      const n = new THREE2.MeshStandardMaterial({ map: m.map, color: m.color, emissiveMap: m.map, emissive: m.color, emissiveIntensity: cfg.outdoors ? 0.35 : 0.65, roughness: 0.95, metalness: 0, side: m.side, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest, vertexColors: m.vertexColors });
+      seen.set(m, n);
+      return n;
+    });
+    if (o.material.length === 1) o.material = o.material[0];
+  });
+  for (const m of seen.keys()) m.dispose();
+}
+function installNativeChainDoors(root, cfg) {
+  const factor = root.scale.x, toWorld = (arr) => new THREE2.Vector3(...arr).multiplyScalar(factor).add(root.position), roomBox = new THREE2.Box3().setFromObject(root);
+  for (const def of cfg.doors) {
+    const center = toWorld(def.point), normal = new THREE2.Vector3(...def.normal).normalize(), right = new THREE2.Vector3().crossVectors(up, normal).normalize(), plane = new THREE2.Plane().setFromNormalAndCoplanarPoint(normal, center);
+    let stand = null;
+    for (const distance of cfg.outdoors ? [2.5, 2.25, 2, 1.8, 1.55, 1.3, 1.05, 0.85] : [0.85, 1.05, 1.3, 1.55, 1.8]) {
+      for (const side of [0, 0.2, -0.2, 0.4, -0.4]) {
+        const p = center.clone().addScaledVector(normal, distance).addScaledVector(right, side), f = floorAt(p.x, p.z, 0.6, 1.3);
+        if (!f || Math.abs(f.point.y) > 0.5 || !bodyClear(p.x, f.point.y, p.z)) continue;
+        const eye = new THREE2.Vector3(p.x, f.point.y + C.eye, p.z), toward = center.clone().sub(eye), length = toward.length(), hit = nativeCast(eye, toward.normalize(), length + 0.3, true)[0];
+        if (def.open ? hit && hit.distance < length - 0.25 : !hit || hit.distance < length - 0.25 || Math.abs(plane.distanceToPoint(hit.point)) > 0.3) continue;
+        stand = [p.x, f.point.y, p.z];
+        break;
+      }
+      if (stand) break;
+    }
+    if (!stand) throw Error(cfg.name + "：本物の扉の前に安全な足場を検出できません（" + def.id + "）");
+    nativeOpening(def.id, def.id === "return" ? cfg.previous : cfg.next, def.id === "return" ? cfg.previous === "hub" ? "本物の入口ドア：Sponza中庭へ戻る" : "本物の入口ドア：前の部屋へ戻る" : "次の部屋へ", center.toArray(), stand, [def.width * factor, def.height * factor, 0.45], def.id === "return" ? "return" : "enter");
+    Object.assign(portals.at(-1), { nativeDoor: true, open: !!def.open, returnTo: def.returnTo, normal, right, plane, width: def.width * factor, height: def.height * factor });
+    if (def.id === "return") {
+      activeSpawn = new THREE2.Vector3(stand[0], stand[1] + C.eye, stand[2]);
+      activeLook = activeSpawn.clone().addScaledVector(normal, 4);
+    }
+  }
+  if (cfg.lookAt) activeLook = toWorld(cfg.lookAt);
+  edgeGuard = { box: roomBox, y: 0, dynamicFloor: !!cfg.dynamicFloor };
+}
+function installRoomReturn(root) {
+  const box = new THREE2.Box3().setFromObject(root), size = box.getSize(new THREE2.Vector3()), center = box.getCenter(new THREE2.Vector3()), candidates = [];
+  for (let iz = 1; iz < 25; iz++) for (let ix = 1; ix < 25; ix++) {
+    const x = box.min.x + size.x * ix / 25, z = box.min.z + size.z * iz / 25, f = nativeCast(new THREE2.Vector3(x, box.max.y + 0.2, z), down, size.y + 0.5, false).find((h) => h.face.normal.y > 0.62 && h.point.y <= box.min.y + 0.8);
+    if (!f || f.point.y > box.min.y + 0.8 || !bodyClear(x, f.point.y, z)) continue;
+    if (nativeCast(new THREE2.Vector3(x, f.point.y + 0.05, z), up, 1.82).length) continue;
+    const dist = Math.hypot(x - center.x, z - center.z);
+    candidates.push({ x, z, y: f.point.y, dist });
+  }
+  const lowest = Math.min(...candidates.map((c) => c.y));
+  candidates.sort((a, b) => (a.y > lowest + 0.12) - (b.y > lowest + 0.12) || a.dist - b.dist);
+  for (const c of candidates) for (let k = 0; k < 8; k++) {
+    const dir = new THREE2.Vector3(Math.sin(k * Math.PI / 4), 0, Math.cos(k * Math.PI / 4));
+    if ([0.25, 0.9, 1.75].some((h) => nativeCast(new THREE2.Vector3(c.x, c.y + h, c.z), dir, 1.05).length)) continue;
+    const p = new THREE2.Vector3(c.x, c.y, c.z).addScaledVector(dir, 0.85);
+    activeSpawn = new THREE2.Vector3(c.x, c.y + C.eye, c.z);
+    activeLook = activeSpawn.clone().addScaledVector(dir, -3);
+    nativeOpening("return", "corridor", "黒アーチから大回廊へ戻る", [p.x, c.y + 1.1, p.z], [c.x, c.y, c.z], [1.5, 2.3, 0.7], "return");
+    const sh = new THREE2.Shape();
+    sh.moveTo(-0.65, 0);
+    sh.lineTo(0.65, 0);
+    sh.lineTo(0.65, 1.55);
+    sh.absarc(0, 1.55, 0.65, 0, Math.PI, false);
+    sh.closePath();
+    const portal = new THREE2.Mesh(new THREE2.ShapeGeometry(sh, 24), new THREE2.MeshBasicMaterial({ color: 0, side: THREE2.DoubleSide }));
+    portal.position.copy(p);
+    portal.rotation.y = Math.atan2(dir.x, dir.z);
+    portal.userData.noCollision = true;
+    architecture.add(portal);
+    return;
+  }
+  throw Error("成人サイズの安全な床と帰還地点を検出できません。");
+}
+function installBuiltOpenings(root) {
+  for (const p of root.userData.portals || []) {
+    const center = root.localToWorld(new THREE2.Vector3(...p.position)), stand = root.localToWorld(new THREE2.Vector3(...p.stand));
+    const scale = root.scale.x;
+    nativeOpening(p.id, p.target, p.label, center.toArray(), stand.toArray(), p.size.map((s2) => s2 * scale), p.kind);
+  }
+  const s = root.localToWorld(new THREE2.Vector3(...root.userData.spawnLocal)), l = root.localToWorld(new THREE2.Vector3(...root.userData.lookLocal));
+  activeSpawn = s.clone();
+  activeSpawn.y += C.eye;
+  activeLook = l;
+}
+async function loadArea(key) {
+  const cfg = AREA_CONFIG[key];
+  stage(cfg.name + "を読み込み中…");
+  $("fadeDetail").textContent = cfg.name;
+  disposeArea();
+  await wait(80);
+  let group;
+  if (cfg.built) {
+    group = builders[cfg.built]();
+    if (key === "myroom") {
+      const chair = await externalScene("chair");
+      chair.updateMatrixWorld(true);
+      const b = new THREE2.Box3().setFromObject(chair);
+      chair.scale.setScalar(0.95 / (b.max.y - b.min.y));
+      chair.updateMatrixWorld(true);
+      const bb = new THREE2.Box3().setFromObject(chair), cc = bb.getCenter(new THREE2.Vector3());
+      chair.position.set(-cc.x, -bb.min.y, 5.6 - cc.z);
+      chair.rotation.y = Math.PI;
+      group.add(chair);
+    }
+    if (key === "corridor") {
+      group.updateMatrixWorld(true);
+      scaleReport = { eyeHeight: C.eye, authoredMeters: true };
+    } else humanScale(group, cfg);
+  } else {
+    group = await externalScene(key);
+    if (key === "hub") {
+      normalizeAsset(group, 42, 0, 0);
+      scaleReport = { eyeHeight: C.eye, originalMonumentalScale: true };
+    } else if (key === "dungeon") {
+      cellarScale(group, cfg);
+      await addExternalBarrels(group);
+    } else if (cfg.chain) scaleChain(group, cfg);
+    else humanScale(group, cfg);
+  }
+  architecture.add(group);
+  group.updateMatrixWorld(true);
+  const seenTextures = /* @__PURE__ */ new Set();
+  group.traverse((o) => {
+    if (o.isLight) {
+      o.visible = false;
+      return;
+    }
+    if (!o.isMesh) return;
+    o.castShadow = o.userData.noCollision !== true;
+    o.receiveShadow = true;
+    o.frustumCulled = true;
+    for (const m of [].concat(o.material)) for (const t of Object.values(m)) {
+      if (t?.isTexture && !seenTextures.has(t)) {
+        seenTextures.add(t);
+        enhanceTexture(t);
+      }
+    }
+  });
+  if (cfg.outdoors) releaseUploadedBitmaps(group);
+  if (key === "hub") addLionArch();
+  activeArea = key;
+  stage(cfg.name + "：ネイティブ床・壁のBVHを構築中…");
+  await buildCollision();
+  if (key === "hub") {
+    activeSpawn = new THREE2.Vector3(-7, C.floor + C.eye, 0);
+    activeLook = new THREE2.Vector3(7, C.floor + C.eye, 0);
+    installHubOpening(group);
+    installReservedDoor(group);
+    installChainGate();
+  } else if (cfg.built) {
+    installBuiltOpenings(group);
+    if (key === "corridor") stairAssist = { axis: "x", x0: -6.04, x1: -2.2, z: 36.2, halfWidth: 0.78, y0: -1.92, y1: 0 };
+    if (key === "library") {
+      const a = group.localToWorld(new THREE2.Vector3(0, 0, 15.18)), b = group.localToWorld(new THREE2.Vector3(0, 0.45, 16.42));
+      stairAssist = { z0: a.z, z1: b.z, y0: a.y, y1: b.y, halfWidth: 6.6 * group.scale.x };
+    }
+  } else if (cfg.chain) installNativeChainDoors(group, cfg);
+  else installRoomReturn(group);
+  if (key === "dungeon") edgeGuard = { box: new THREE2.Box3().setFromObject(group), y: scaleReport.floorY };
+  const f = floorAt(activeSpawn.x, activeSpawn.z, activeSpawn.y - C.eye + 0.45, 1.3);
+  if (!f || !bodyClear(activeSpawn.x, f.point.y, activeSpawn.z)) throw Error("入口に安全な足場がありません。");
+  activeSpawn.y = f.point.y + C.eye;
+  lampAnchors = (group.userData.lamps || []).map((p) => group.localToWorld(new THREE2.Vector3(...p)));
+  reset();
+  ready = true;
+  spot.shadow.needsUpdate = true;
+  shadowTime = -1;
+  scene.background.set(cfg.outdoors ? 12570591 : 594204);
+  scene.fog.color.copy(scene.background);
+  scene.fog.density = cfg.outdoors ? 8e-4 : 5e-3;
+  hemi.intensity = cfg.outdoors ? 0.85 : cfg.chain ? 0.45 : key === "dungeon" ? 1.15 : key === "hub" ? 0.9 : key === "library" ? 1.05 : key === "lounge" ? 0.75 : 0.55;
+  moon.intensity = cfg.outdoors ? 0.5 : cfg.chain ? 0.15 : key === "dungeon" ? 0.85 : key === "hub" ? 1.25 : key === "library" ? 0.8 : key === "lounge" ? 0.65 : 0.35;
+  stage(cfg.name + " · 目線 " + C.eye.toFixed(2) + "m · E：既存の開口部から移動");
+}
+function scanDoor() {
+  selectedPortal = null;
+  $("doorPrompt").textContent = "";
+  if (!ready || transitioning || !controls.isLocked) return;
+  camera.updateMatrixWorld(true);
+  const direction = new THREE2.Vector3();
+  camera.getWorldDirection(direction);
+  const viewRay = new THREE2.Ray(camera.position, direction), point = new THREE2.Vector3();
+  let nearest = Infinity;
+  for (const p of portals) {
+    if (p.nativeDoor) {
+      const at = viewRay.intersectPlane(p.plane, point);
+      if (!at) continue;
+      const delta = at.clone().sub(p.position), distance2 = camera.position.distanceTo(at);
+      if (distance2 > 2.8 || Math.abs(delta.dot(p.right)) > p.width / 2 || Math.abs(delta.y) > p.height / 2) continue;
+      const hit = nativeCast(camera.position, direction, distance2 + 0.3, true)[0];
+      if (p.open ? hit && hit.distance < distance2 - 0.24 : !hit || hit.distance < distance2 - 0.24 || Math.abs(p.plane.distanceToPoint(hit.point)) > 0.3) continue;
+      if (distance2 < nearest) {
+        nearest = distance2;
+        selectedPortal = p;
+      }
+      continue;
+    }
+    const aimed = viewRay.intersectBox(p.box, point), distance = camera.position.distanceTo(p.position);
+    if (distance > 2.8) continue;
+    if (!aimed) continue;
+    const to = p.position.clone().sub(camera.position), length = to.length();
+    if (nativeCast(camera.position, to.normalize(), Math.max(0.01, length - 0.25), true).length) continue;
+    if (distance < nearest) {
+      nearest = distance;
+      selectedPortal = p;
+    }
+  }
+  if (performance.now() < closedUntil && selectedPortal?.id === "door2") $("doorPrompt").textContent = "扉は固く閉ざされている…";
+  else if (selectedPortal) $("doorPrompt").textContent = "Eキー：" + selectedPortal.label;
+}
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+async function fade(to) {
+  const el = $("fade");
+  el.classList.remove("hidden");
+  if (to === 1) {
+    el.style.opacity = "0";
+    el.getBoundingClientRect();
+  }
+  el.style.opacity = String(to);
+  await wait(1050);
+  if (to === 0) el.classList.add("hidden");
+}
+function restorePose(pose) {
+  camera.position.fromArray(pose.position);
+  camera.quaternion.fromArray(pose.quaternion);
+  feet = pose.feet;
+  grounded = true;
+  verticalVelocity = 0;
+  jumpRequested = false;
+  velocity.set(0, 0, 0);
+  flashQ.copy(camera.quaternion);
+}
+async function useDoor() {
+  if (transitioning || !ready) return;
+  scanDoor();
+  const portal = selectedPortal;
+  if (!portal) return;
+  if (!portal.target) {
+    closedUntil = performance.now() + 2500;
+    $("doorPrompt").textContent = "扉は固く閉ざされている…";
+    return;
+  }
+  const from = activeArea, pose = { position: camera.position.toArray(), quaternion: camera.quaternion.toArray(), feet };
+  const returning = portal.kind === "return", parent = returning ? portal.returnTo ? routeStack.findLast((f) => f.source === portal.returnTo) : routeStack.at(-1) : null, target = parent ? parent.source : portal.target;
+  transitioning = true;
+  controls.enabled = false;
+  keys.clear();
+  jumpRequested = false;
+  velocity.set(0, 0, 0);
+  $("doorPrompt").textContent = "";
+  $("fadeLabel").textContent = "……（扉を開けています）";
+  $("fadeDetail").textContent = "";
+  await fade(1);
+  let error = null;
+  try {
+    await loadArea(target);
+    if (returning) {
+      if (parent) {
+        restorePose(parent.pose);
+        if (portal.returnTo) {
+          while (routeStack.length) {
+            const frame = routeStack.pop();
+            if (frame === parent) break;
+          }
+        } else routeStack.pop();
+      }
+    } else routeStack.push({ source: from, target, portalId: portal.id, pose });
+    try {
+      await renderer.compileAsync(scene, camera);
+    } catch {
+    }
+    renderer.render(scene, camera);
+  } catch (e) {
+    error = e;
+    console.error(e);
+    $("fadeLabel").textContent = "読込に失敗しました。安全なエリアへ戻ります…";
+    try {
+      if (AREA_CONFIG[target]?.chain || AREA_CONFIG[from]?.chain) {
+        await loadArea(from);
+        restorePose(pose);
+      } else {
+        await loadArea("corridor");
+        if (from === "corridor") restorePose(pose);
+        else {
+          const frame = routeStack.findLast((f) => f.source === "corridor");
+          if (frame) restorePose(frame.pose);
+        }
+        while (routeStack.length && routeStack.at(-1).target !== "corridor") routeStack.pop();
+      }
+    } catch (rollback) {
+      console.error(rollback);
+      failed = true;
+      ready = false;
+      stage("復帰に失敗しました。再読込してください。");
+      $("retry").classList.remove("hidden");
+    }
+  }
+  spot.shadow.needsUpdate = true;
+  shadowTime = -1;
+  await fade(0);
+  transitioning = false;
+  controls.enabled = true;
+  keys.clear();
+  if (!ready) {
+    controls.unlock();
+    setMenu(true);
+    $("start").disabled = true;
+  } else if (!controls.isLocked) setMenu(true);
+  if (error) stage("読込失敗のため復帰：" + error.message);
+}
+function updateTorches() {
+  if (!lampAnchors.length) {
+    torchLights.forEach((l) => l.intensity = 0);
+    return;
+  }
+  const candidates = lampAnchors.map((p) => ({ p, d: p.distanceToSquared(camera.position) })).sort((a, b) => a.d - b.d);
+  torchLights.forEach((light, i) => {
+    const c = candidates[i];
+    if (!c) {
+      light.intensity = 0;
+      return;
+    }
+    light.position.copy(c.p);
+    light.intensity = 7.5 + Math.sin(elapsed * 13 + i) * 0.3;
+  });
+}
+async function init() {
+  try {
+    stage("高精細PBRとSponzaを準備中…");
+    [stone, wood, paving] = await Promise.all([pbr("castle_brick_01"), pbr("old_wood_floor"), pbr("monastery_stone_floor")]);
+    rememberShared(stone);
+    rememberShared(wood);
+    rememberShared(paving);
+    wood.color.set(11901559);
+    metal = rememberShared(new THREE2.MeshStandardMaterial({ map: wood.map, roughnessMap: wood.roughnessMap, color: 5194805, metalness: 0.75, roughness: 0.45 }));
+    builders = createBuilders({ stone, wood, paving, metal });
+    await loadArea("hub");
+    $("start").disabled = false;
+    $("start").textContent = "中庭の探索をはじめる";
+  } catch (e) {
+    failed = true;
+    console.error(e);
+    stage("読込失敗：" + e.message);
+    $("retry").classList.remove("hidden");
+  }
+}
+var shadowPosition = new THREE2.Vector3(1e4, 1e4, 1e4);
+var shadowRotation = new THREE2.Quaternion();
+var shadowTime = -1;
+var clock = new THREE2.Clock();
+var frames = 0;
+var frameTime = 0;
+var smoothFPS = 60;
+function animate() {
+  requestAnimationFrame(animate);
+  const real = clock.getDelta(), dt = Math.min(real, 0.05);
+  elapsed += dt;
+  if (gpuContextLost) return;
+  if (ready && controls.isLocked && !transitioning) {
+    move(dt);
+    interactionTime -= dt;
+    if (interactionTime <= 0) {
+      interactionTime = 0.08;
+      scanDoor();
+    }
+  } else $("doorPrompt").textContent = "";
+  flashQ.slerp(camera.quaternion, 1 - Math.exp(-15 * dt));
+  const direction = new THREE2.Vector3(0, 0, -1).applyQuaternion(flashQ);
+  spot.position.copy(camera.position).add(new THREE2.Vector3(0.15, -0.13, 0).applyQuaternion(camera.quaternion));
+  aim.position.copy(spot.position).addScaledVector(direction, 12);
+  aim.updateMatrixWorld();
+  if (spot.visible && spot.castShadow && elapsed - shadowTime >= 1 / 30 && (spot.position.distanceToSquared(shadowPosition) > 4e-4 || flashQ.angleTo(shadowRotation) > 3e-3 || shadowTime < 0)) {
+    spot.shadow.needsUpdate = true;
+    shadowTime = elapsed;
+    shadowPosition.copy(spot.position);
+    shadowRotation.copy(flashQ);
+  }
+  updateTorches();
+  renderer.render(scene, camera);
+  frames++;
+  frameTime += real;
+  if (frameTime >= 1) {
+    const fps = frames / frameTime;
+    smoothFPS = smoothFPS * 0.6 + fps * 0.4;
+    $("perf").innerHTML = `<b>${Math.round(fps)}</b> FPS <span>${renderer.info.render.calls} draws · ${Math.round(renderer.info.render.triangles / 1e3)}k tris · DPR ${dpr.toFixed(2)} · ${activeArea.toUpperCase()}</span>`;
+    frames = 0;
+    frameTime = 0;
+  }
+}
+reset();
+animate();
+init();

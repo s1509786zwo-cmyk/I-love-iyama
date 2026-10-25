@@ -1,0 +1,121 @@
+// Sponza -> Long Corridor -> rooms. All transitions are attached to native
+// openings; this system never creates a wooden door panel or a door prop.
+const AREA_CONFIG={
+ hub:{name:'Sponza — 中庭',url:C.sponza,span:42,baseY:0,spawn:[-7,C.floor,0],look:[7,C.floor+1.65,0]},
+ corridor:{name:'Long Corridor — 大回廊',built:'corridor',targetHeight:3.45,baseY:0},
+ library:{name:'Grand Library — 大図書館',built:'library',targetHeight:3.45,baseY:0},
+ breakfast:{name:'The Breakfast Room — 休憩室',url:'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/bitterli-rendering-resources/breakfast-room.glb',targetHeight:3.3,baseY:0,useCamera:true}
+};
+const rawCache=new Map(),routeStack=[];
+let activeArea='hub',activeSpawn=null,activeLook=null,transitioning=false,portals=[],selectedPortal=null,interactionTime=0;
+let wood=null,paving=null,metal=null,builders=null,scaleReport=null,lampAnchors=[];
+const sharedMaterials=new Set(),sharedTextures=new Set();
+const torchLights=[new THREE.PointLight(0xffac60,0,6.5,2),new THREE.PointLight(0xffad64,0,6.5,2)];torchLights.forEach(l=>scene.add(l));
+function rememberShared(material){sharedMaterials.add(material);for(const v of Object.values(material))if(v?.isTexture)sharedTextures.add(v);return material;}
+async function sourceBytes(key){if(rawCache.has(key))return rawCache.get(key);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);try{const response=await fetch(AREA_CONFIG[key].url,{mode:'cors',signal:controller.signal});if(!response.ok)throw Error('HTTP '+response.status);const bytes=await response.arrayBuffer();rawCache.set(key,bytes);return bytes;}finally{clearTimeout(timer);}}
+function disposeArea(){
+ portals=[];selectedPortal=null;lampAnchors=[];torchLights.forEach(l=>l.intensity=0);$('doorPrompt').textContent='';stairRuns.length=0;
+ const gs=new Set(),ms=new Set(),ts=new Set();for(const group of architecture.children.slice()){architecture.remove(group);group.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of [].concat(o.material||[])){ms.add(m);for(const v of Object.values(m))if(v?.isTexture)ts.add(v);}});}
+ gs.forEach(g=>g.dispose());ms.forEach(m=>{if(!sharedMaterials.has(m))m.dispose();});const images=new Set();ts.forEach(t=>{if(!sharedTextures.has(t)){t.dispose();if(t.image)images.add(t.image);}});images.forEach(i=>{if(i.close)i.close();});
+ if(collider){collider.geometry.boundsTree=null;collider.geometry.dispose();collider.material.dispose();collider=null;}renderer.renderLists.dispose();ready=false;
+}
+function humanScale(root,cfg){
+ root.scale.setScalar(1);root.updateMatrixWorld(true);const before=new THREE.Box3().setFromObject(root),height=before.max.y-before.min.y;
+ let factor=cfg.targetHeight/height,deskTop=null;
+ // Detect a real tabletop where available. Breakfast Room's authored table is
+ // WhiteMarble; procedural maps carry an explicit physical dimension.
+ if(root.userData.tableHeight!=null)deskTop=before.min.y+root.userData.tableHeight;
+ else root.traverse(o=>{if(o.isMesh&&/WhiteMarble|HumanDesk|TableTop/i.test(o.name)){const b=new THREE.Box3().setFromObject(o);if(!deskTop||b.max.y<deskTop)deskTop=b.max.y;}});
+ if(deskTop!=null&&deskTop-before.min.y>.1){const waistScale=.8/(deskTop-before.min.y);factor=clamp(waistScale,3.0/height,3.5/height);}
+ root.scale.setScalar(factor);root.updateMatrixWorld(true);let box=new THREE.Box3().setFromObject(root),center=box.getCenter(new THREE.Vector3());root.position.x-=center.x;root.position.z-=center.z;root.position.y+=(cfg.baseY||0)-box.min.y;root.updateMatrixWorld(true);
+ scaleReport={factor,bboxHeight:height*factor,ceilingTarget:[3.0,3.5],tableHeight:deskTop==null?null:(deskTop-before.min.y)*factor,eyeHeight:C.eye};
+}
+function nativeOpening(id,target,label,position,stand,size,kind='enter'){
+ const center=new THREE.Vector3(...position),s=new THREE.Vector3(...size);portals.push({id,target,label,kind,position:center,stand,box:new THREE.Box3().setFromCenterAndSize(center,s)});
+}
+function installHubOpening(){
+ // Test an existing lateral arcade opening, rather than the lion relief wall.
+ // Both a standing capsule and two horizontal rays must fit through the arch.
+ for(const side of[-1,1])for(const x of[-10,-7,-3,3,7,10]){
+  const z0=side*2.5,z1=side*5.0,ground=floorAt(x,z0,C.floor+.4,1),other=floorAt(x,z1,C.floor+.4,1);if(!ground||!other)continue;
+  const y=ground.point.y;if(Math.abs(other.point.y-y)>.15||!bodyClear(x,y,z0)||!bodyClear(x,y,z1))continue;
+  const direction=new THREE.Vector3(0,0,side);let clear=true;
+  for(const h of[.25,.9,1.7])if(nativeCast(new THREE.Vector3(x,y+h,z0),direction,Math.abs(z1-z0),true).length){clear=false;break;}
+  if(!clear)continue;
+  nativeOpening('arcade','corridor','大回廊（Long Corridor）へ移動',[x,y+1.15,side*3.75],[x,y,z0],[1.8,2.4,.9]);return;
+ }
+ throw Error('通行できる既存のアーチ抜けを検出できませんでした。');
+}
+function findBreakfastEntrance(group,cameraHint){
+ let floorBox=null;group.traverse(o=>{if(o.isMesh&&/FloorTiles/i.test(o.name))floorBox=new THREE.Box3().setFromObject(o);});if(!floorBox)throw Error('休憩室の元の床を検出できません。');
+ const candidates=[];
+ // Search only the original floor perimeter for a wall-free, adult-size opening.
+ for(const side of['north','south','west','east'])for(let i=1;i<20;i++){
+  let edge,inward;
+  if(side==='north'||side==='south'){edge=new THREE.Vector3(THREE.MathUtils.lerp(floorBox.min.x,floorBox.max.x,i/20),floorBox.max.y,side==='north'?floorBox.max.z:floorBox.min.z);inward=new THREE.Vector3(0,0,side==='north'?-1:1);}
+  else{edge=new THREE.Vector3(side==='east'?floorBox.max.x:floorBox.min.x,floorBox.max.y,THREE.MathUtils.lerp(floorBox.min.z,floorBox.max.z,i/20));inward=new THREE.Vector3(side==='east'?-1:1,0,0);}
+  const stand=edge.clone().addScaledVector(inward,.65),f=floorAt(stand.x,stand.z,floorBox.max.y+.5,1);if(!f||Math.abs(f.point.y-floorBox.max.y)>.15||!bodyClear(stand.x,f.point.y,stand.z))continue;
+  const out=inward.clone().negate();let open=true;
+  for(const h of[.2,.9,1.75])if(nativeCast(new THREE.Vector3(stand.x,f.point.y+h,stand.z),out,.70,true).length){open=false;break;}
+  if(!open)continue;
+  const score=cameraHint?stand.distanceTo(cameraHint.position):stand.length();candidates.push({edge,stand,floor:f.point.y,inward,score});
+ }
+ candidates.sort((a,b)=>a.score-b.score);if(!candidates.length)throw Error('休憩室の既存の入口に成人サイズの開口が見つかりません。');
+ const c=candidates[0];activeSpawn=new THREE.Vector3(c.stand.x,c.floor+C.eye,c.stand.z);activeLook=activeSpawn.clone().addScaledVector(c.inward,3);
+ nativeOpening('return','corridor','大回廊へ戻る',[c.edge.x,c.floor+1.2,c.edge.z],[c.stand.x,c.floor,c.stand.z],[.95,2.4,.95],'return');
+}
+function installBuiltOpenings(root){
+ for(const p of root.userData.portals||[]){const center=root.localToWorld(new THREE.Vector3(...p.position)),stand=root.localToWorld(new THREE.Vector3(...p.stand));const scale=root.scale.x;
+  nativeOpening(p.id,p.target,p.label,center.toArray(),stand.toArray(),p.size.map(s=>s*scale),p.kind);
+ }
+ const s=root.localToWorld(new THREE.Vector3(...root.userData.spawnLocal)),l=root.localToWorld(new THREE.Vector3(...root.userData.lookLocal));activeSpawn=s.clone();activeSpawn.y+=C.eye;activeLook=l;
+}
+async function loadArea(key){
+ const cfg=AREA_CONFIG[key];stage(cfg.name+'を読み込み中…');$('fadeDetail').textContent=cfg.name;disposeArea();await wait(80);
+ let group,cameraHint=null;
+ if(cfg.built){group=builders[cfg.built]();humanScale(group,cfg);}
+ else{
+  const loader=new GLTFLoader(),draco=new DRACOLoader();draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');loader.setDRACOLoader(draco);let gltf;
+  try{gltf=await loader.parseAsync(await sourceBytes(key),'');}finally{draco.dispose();}group=gltf.scene;
+  if(key==='hub'){normalizeAsset(group,42,0,0);scaleReport={eyeHeight:C.eye,originalMonumentalScale:true};}
+  else humanScale(group,cfg);
+  if(gltf.cameras?.length){const c=gltf.cameras[0];c.updateWorldMatrix(true,false);cameraHint={position:c.getWorldPosition(new THREE.Vector3())};}
+ }
+ architecture.add(group);group.updateMatrixWorld(true);group.traverse(o=>{if(o.isLight){o.visible=false;return;}if(!o.isMesh)return;o.castShadow=o.userData.noCollision!==true;o.receiveShadow=true;o.frustumCulled=true;for(const m of[].concat(o.material))for(const property of['map','normalMap','roughnessMap']){const t=m[property];if(t&&t.anisotropy!==4){t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());t.needsUpdate=true;}}});
+ activeArea=key;stage(cfg.name+'：ネイティブ床・壁のBVHを構築中…');await buildCollision();
+ if(key==='hub'){activeSpawn=new THREE.Vector3(-7,C.floor+C.eye,0);activeLook=new THREE.Vector3(7,C.floor+C.eye,0);installHubOpening();}
+ else if(cfg.built)installBuiltOpenings(group);
+ else findBreakfastEntrance(group,cameraHint);
+ const f=floorAt(activeSpawn.x,activeSpawn.z,activeSpawn.y-C.eye+.45,1.3);if(!f||!bodyClear(activeSpawn.x,f.point.y,activeSpawn.z))throw Error('入口に安全な足場がありません。');activeSpawn.y=f.point.y+C.eye;
+ lampAnchors=(group.userData.lamps||[]).map(p=>group.localToWorld(new THREE.Vector3(...p)));reset();ready=true;spot.shadow.needsUpdate=true;shadowTime=-1;
+ hemi.intensity=key==='hub'?.9:key==='breakfast'?.75:.35;moon.intensity=key==='hub'?1.25:key==='breakfast'?.65:.20;
+ stage(cfg.name+' · 目線 '+C.eye.toFixed(2)+'m · E：既存の開口部から移動');
+}
+function scanDoor(){
+ selectedPortal=null;$('doorPrompt').textContent='';if(!ready||transitioning||!controls.isLocked)return;
+ camera.updateMatrixWorld(true);const direction=new THREE.Vector3();camera.getWorldDirection(direction);const viewRay=new THREE.Ray(camera.position,direction),point=new THREE.Vector3();let nearest=Infinity;
+ for(const p of portals){const aimed=viewRay.intersectBox(p.box,point),distance=camera.position.distanceTo(p.position);if(distance>2.8)continue;if(!aimed&&distance>1.65)continue;
+  const to=p.position.clone().sub(camera.position),length=to.length();if(nativeCast(camera.position,to.normalize(),Math.max(.01,length-.25),true).length)continue;
+  if(distance<nearest){nearest=distance;selectedPortal=p;}
+ }
+ if(selectedPortal)$('doorPrompt').textContent='Eキー：'+selectedPortal.label;
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+async function fade(to){const el=$('fade');el.classList.remove('hidden');if(to===1){el.style.opacity='0';el.getBoundingClientRect();}el.style.opacity=String(to);await wait(1050);if(to===0)el.classList.add('hidden');}
+function restorePose(pose){camera.position.fromArray(pose.position);camera.quaternion.fromArray(pose.quaternion);feet=pose.feet;grounded=true;verticalVelocity=0;jumpRequested=false;velocity.set(0,0,0);flashQ.copy(camera.quaternion);}
+async function useDoor(){
+ if(transitioning||!ready)return;scanDoor();const portal=selectedPortal;if(!portal)return;
+ const from=activeArea,pose={position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),feet};
+ const returning=portal.kind==='return',parent=returning?routeStack.at(-1):null,target=parent?parent.source:portal.target;
+ transitioning=true;controls.enabled=false;keys.clear();jumpRequested=false;velocity.set(0,0,0);$('doorPrompt').textContent='';$('fadeLabel').textContent='……（通路を移動しています）';$('fadeDetail').textContent='';await fade(1);
+ let error=null;
+ try{await loadArea(target);if(returning){if(parent){restorePose(parent.pose);routeStack.pop();}}else routeStack.push({source:from,target,portalId:portal.id,pose});
+  try{await renderer.compileAsync(scene,camera);}catch{}renderer.render(scene,camera);
+ }catch(e){error=e;console.error(e);$('fadeLabel').textContent='読込に失敗しました。元の場所へ戻ります…';try{await loadArea(from);restorePose(pose);}catch(rollback){console.error(rollback);failed=true;ready=false;stage('復帰に失敗しました。再読込してください。');$('retry').classList.remove('hidden');}}
+ spot.shadow.needsUpdate=true;shadowTime=-1;await fade(0);transitioning=false;controls.enabled=true;keys.clear();if(!ready){controls.unlock();setMenu(true);$('start').disabled=true;}else if(!controls.isLocked)setMenu(true);if(error)stage('読込失敗のため復帰：'+error.message);
+}
+function updateTorches(){
+ if(!lampAnchors.length){torchLights.forEach(l=>l.intensity=0);return;}
+ const candidates=lampAnchors.map(p=>({p,d:p.distanceToSquared(camera.position)})).sort((a,b)=>a.d-b.d);
+ torchLights.forEach((light,i)=>{const c=candidates[i];if(!c){light.intensity=0;return;}light.position.copy(c.p);light.intensity=7.5+Math.sin(elapsed*13+i)*.30;});
+}
