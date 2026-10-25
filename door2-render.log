@@ -1,0 +1,8 @@
+AREA hintze
+RENDER door2-hintze-live
+RENDER door2-hintze-return
+RENDER door2-hintze-next
+AREA lebioles
+RENDER door2-lebioles-live
+RENDER door2-lebioles-return
+PASS actual full draw / zero JS errors

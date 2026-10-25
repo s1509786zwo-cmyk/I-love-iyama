@@ -1,0 +1,13 @@
+FACE door2 { selected: 'door2', prompt: 'Eキー：自然史博物館の大ホールへ' }
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Target crashed 
+    at go (/home/user/browser_checks/door2-live.mjs:1:961)
+    at async file:///home/user/browser_checks/door2-live.mjs:2:283 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v20.20.2

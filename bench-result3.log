@@ -1,0 +1,46 @@
+FACE ironDoor { selected: 'ironDoor', prompt: 'Eキー：鉄扉を開けて大回廊へ' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 0, 1.65, 2 ] GPU { geometries: 48, textures: 10 }
+FACE breakfast { selected: 'breakfast', prompt: 'Eキー：反対側：The Breakfast Roomへ' }
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/bitterli-rendering-resources/breakfast-room.glb
+    at Ct (file:///home/user/external_bench/index.html?debug:1:23345)
+    at async Bt (file:///home/user/external_bench/index.html?debug:1:23520)
+    at async he (file:///home/user/external_bench/index.html?debug:1:29807)
+    at async qt (file:///home/user/external_bench/index.html?debug:1:32216)
+    at async Object.pt [as useDoor] (file:///home/user/external_bench/index.html?debug:1:31815)
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -1, 1.65, 20 ] GPU { geometries: 7, textures: 10 }
+PASS 503 rollback
+FACE breakfast { selected: 'breakfast', prompt: 'Eキー：反対側：The Breakfast Roomへ' }
+AREA breakfast SCALE {
+  factor: 0.32185511803990474,
+  bboxHeight: 3.0729438922567383,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.07477676161659397, 1.681185170635581, -0.09500329740211111 ] GPU { geometries: 44, textures: 15 }
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -1, 1.65, 20 ] GPU { geometries: 7, textures: 10 }
+FACE wine { selected: 'wine', prompt: 'Eキー：黒アーチ：外部ワインバーへ' }
+AREA wine SCALE {
+  factor: 0.6068161665003509,
+  bboxHeight: 6.457985326774123,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.27704681396484343, 1.9081683608501678, -0.3442059707641594 ] GPU { geometries: 64, textures: 49 }
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ 1, 1.65, 20 ] GPU { geometries: 7, textures: 11 }
+FACE cellar { selected: 'cellar', prompt: 'Eキー：石階段の底：外部ワインバーへ' }
+AREA wine SCALE {
+  factor: 0.6068161665003509,
+  bboxHeight: 6.457985326774123,
+  tableHeight: 0.75,
+  eyeHeight: 1.65,
+  scaleBasis: 'authored tabletop / floor'
+} POSITION [ -0.27704681396484343, 1.9081683608501678, -0.3442059707641594 ] GPU { geometries: 64, textures: 49 }
+FACE return { selected: 'return', prompt: 'Eキー：黒アーチから大回廊へ戻る' }
+AREA corridor SCALE { eyeHeight: 1.65, authoredMeters: true } POSITION [ -6.25, -0.26999995708465585, 36.2 ] GPU { geometries: 8, textures: 11 }
+PASS sensitivity / F L / jump / stair assist
+FACE courtyard { selected: 'courtyard', prompt: 'Eキー：中庭（Sponza）へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ -0.039293485342917434, 3.0489596366882323, 5.786872166207433 ] GPU { geometries: 30, textures: 47 }
+PASS real external Bistro and Breakfast, opposite doors, stair route, exact returns, no JS errors

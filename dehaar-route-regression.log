@@ -1,0 +1,114 @@
+FACE door2 { selected: 'door2', prompt: 'Eキー：自然史博物館の大ホールへ' }
+AREA hintze SCALE {
+  factor: 1,
+  bboxHeight: 22.31535793795314,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.35,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 24.201879880226784, 1.6235985920981573, -1.2827279596111794 ] PORTALS [
+  {
+    nativeDoor: true,
+    id: 'return',
+    target: 'hub',
+    kind: 'return',
+    position: [ 25.051879880226785, 1.5499999999999998, -1.2827279596111794 ],
+    stand: [ 24.201879880226784, -0.026401407901842755, -1.2827279596111794 ]
+  },
+  {
+    nativeDoor: true,
+    id: 'next',
+    target: 'dehaar',
+    kind: 'enter',
+    position: [ 24.221879880226783, 1.5, -6.282727959611179 ],
+    stand: [ 23.371879880226782, -0.04898505025925193, -6.282727959611179 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 8192,
+  cpuWidth: 8192,
+  gpuUploaded: undefined,
+  cpuBitmapReleased: undefined
+}
+NAV {
+  reachable: true,
+  visited: 520,
+  queued: 559,
+  goal: [ 23.371879880226782, -0.04898505025925193, -6.282727959611179 ]
+}
+CONSOLE Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+CONSOLE Error: HTTP 503: http://localhost:8082/assets/dehaar.glb
+    at p (http://localhost:8082/debug.html?debug:1:33182)
+    at async http://localhost:8082/debug.html?debug:1:33463
+    at async Xe (http://localhost:8082/debug.html?debug:1:34852)
+    at async Se (http://localhost:8082/debug.html?debug:1:44795)
+    at async Object.Mt [as useDoor] (http://localhost:8082/debug.html?debug:1:48275)
+    at async <anonymous>:396:30
+PASS intentional 503 / exact safe rollback
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA dehaar SCALE {
+  factor: 1,
+  bboxHeight: 49.01254581931323,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 1.8,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ -26.70177728930563, 1.6005129432834786, 59.43956694215264 ] PORTALS [
+  {
+    nativeDoor: true,
+    id: 'return',
+    target: 'hub',
+    kind: 'return',
+    position: [ -25.287563726932536, 1.7, 60.57093779205111 ],
+    stand: [ -26.70177728930563, -0.049487056716521316, 59.43956694215264 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 4096,
+  cpuWidth: 0,
+  gpuUploaded: [ 4096, 4096 ],
+  cpuBitmapReleased: true
+}
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：Sponza中庭へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ -0.039293485342917434, 3.0489596366882323, -5.8502967596195905 ] PORTALS [
+  {
+    nativeDoor: false,
+    id: 'ironDoor',
+    target: 'corridor',
+    kind: 'enter',
+    position: [ -0.039293485342917434, 2.5489596366882323, 6.6568721662074335 ],
+    stand: [ -0.039293485342917434, 1.3989596366882324, 5.786872166207433 ]
+  },
+  {
+    nativeDoor: false,
+    id: 'door2',
+    target: 'hintze',
+    kind: 'enter',
+    position: [ -0.039293485342917434, 2.5489596366882323, -6.720296759619591 ],
+    stand: [ -0.039293485342917434, 1.3989596366882324, -5.8502967596195905 ]
+  },
+  {
+    nativeDoor: false,
+    id: 'chainGate',
+    target: 'room1',
+    kind: 'enter',
+    position: [ 14.16, 2.9989596366882325, 0 ],
+    stand: [ 13.2, 1.3989596366882324, 0 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 1024,
+  cpuWidth: 1024,
+  gpuUploaded: undefined,
+  cpuBitmapReleased: undefined
+}
+PASS hub → Hintze(8192 original) → DeHaar(4096 original) → hub exact pose/route unwind / 503 safe rollback/retry / shadow toggle never changes DPR / no page errors — NAVIGATION TEST ONLY, GPU uploads/draws mocked

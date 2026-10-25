@@ -1,0 +1,132 @@
+FACE door2 { selected: 'door2', prompt: 'Eキー：自然史博物館の大ホールへ' }
+AREA hintze SCALE {
+  factor: 1,
+  bboxHeight: 22.31535793795314,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.35,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 24.201879880226784, 1.6236536741458742, -1.2827279596111794 ] PORTALS [
+  {
+    nativeDoor: true,
+    id: 'return',
+    target: 'hub',
+    kind: 'return',
+    position: [ 25.051879880226785, 1.5499999999999998, -1.2827279596111794 ],
+    stand: [ 24.201879880226784, -0.026346325854125774, -1.2827279596111794 ]
+  },
+  {
+    nativeDoor: true,
+    id: 'next',
+    target: 'lebioles',
+    kind: 'enter',
+    position: [ 24.221879880226783, 1.5, -6.282727959611179 ],
+    stand: [ 23.371879880226782, -0.04902289302491725, -6.282727959611179 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 2048,
+  sourceSize: undefined
+}
+NAV {
+  reachable: true,
+  visited: 521,
+  queued: 560,
+  goal: [ 23.371879880226782, -0.04902289302491725, -6.282727959611179 ]
+}
+FACE next { selected: 'next', prompt: 'Eキー：次の部屋へ' }
+AREA lebioles SCALE {
+  factor: 1.5000000000000002,
+  bboxHeight: 11.464211940765406,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: -1.12,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 0.21205363273620625, 1.6605027158781147, -0.2594668984413178 ] PORTALS [
+  {
+    nativeDoor: true,
+    id: 'return',
+    target: 'hintze',
+    kind: 'return',
+    position: [ 1.0620536327362062, 1.4100000000000004, -0.059466898441317806 ],
+    stand: [ 0.21205363273620625, 0.010502715878114799, -0.2594668984413178 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 2048,
+  sourceSize: undefined
+}
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：前の部屋へ戻る' }
+AREA hintze SCALE {
+  factor: 1,
+  bboxHeight: 22.31535793795314,
+  eyeHeight: 1.65,
+  floorY: 0,
+  sourceFloor: 0.35,
+  scaleBasis: 'full BBox / surveyed original scan dimensions'
+} POSITION [ 23.371879880226782, 1.6009771069750827, -6.282727959611179 ] PORTALS [
+  {
+    nativeDoor: true,
+    id: 'return',
+    target: 'hub',
+    kind: 'return',
+    position: [ 25.051879880226785, 1.5499999999999998, -1.2827279596111794 ],
+    stand: [ 24.201879880226784, -0.026346325854125774, -1.2827279596111794 ]
+  },
+  {
+    nativeDoor: true,
+    id: 'next',
+    target: 'lebioles',
+    kind: 'enter',
+    position: [ 24.221879880226783, 1.5, -6.282727959611179 ],
+    stand: [ 23.371879880226782, -0.04902289302491725, -6.282727959611179 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 2048,
+  sourceSize: undefined
+}
+FACE return { selected: 'return', prompt: 'Eキー：本物の入口ドア：Sponza中庭へ戻る' }
+AREA hub SCALE { eyeHeight: 1.65, originalMonumentalScale: true } POSITION [ -0.039293485342917434, 3.0489596366882323, -5.8502967596195905 ] PORTALS [
+  {
+    nativeDoor: false,
+    id: 'ironDoor',
+    target: 'corridor',
+    kind: 'enter',
+    position: [ -0.039293485342917434, 2.5489596366882323, 6.6568721662074335 ],
+    stand: [ -0.039293485342917434, 1.3989596366882324, 5.786872166207433 ]
+  },
+  {
+    nativeDoor: false,
+    id: 'door2',
+    target: 'hintze',
+    kind: 'enter',
+    position: [ -0.039293485342917434, 2.5489596366882323, -6.720296759619591 ],
+    stand: [ -0.039293485342917434, 1.3989596366882324, -5.8502967596195905 ]
+  },
+  {
+    nativeDoor: false,
+    id: 'chainGate',
+    target: 'room1',
+    kind: 'enter',
+    position: [ 14.16, 2.9989596366882325, 0 ],
+    stand: [ 13.2, 1.3989596366882324, 0 ]
+  }
+] TEX {
+  anisotropy: 16,
+  mips: true,
+  min: 1008,
+  mag: 1006,
+  w: 1024,
+  sourceSize: undefined
+}
+PASS door2 two new maps / native doors / 8192 images / exact nested returns / no page errors

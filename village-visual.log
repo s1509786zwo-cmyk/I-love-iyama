@@ -1,0 +1,8 @@
+FACE villageGate { selected: 'villageGate', prompt: 'Eキー：中庭奥の大門：Villageへ' }
+AREA village SCALE {
+  factor: 2.9999999497331253,
+  bboxHeight: 5.1225,
+  eyeHeight: 1.65,
+  scaleBasis: 'source village house walls approximately 3m; entire model uniformly scaled'
+} POSITION [ -0.28014284555783675, 1.65, 20.799999597865003 ] GPU { geometries: 33, textures: 4 }
+PASS village real render
