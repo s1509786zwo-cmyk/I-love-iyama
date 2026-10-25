@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>耳が飾りになるまで｜プレイ可能プロトタイプ</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="vignette"></div>
+<div id="dangerVignette"></div>
+<div id="grain"></div>
+
+<div id="hud" class="hidden">
+  <div id="objectivePanel">
+    <div class="panelLabel">目的</div>
+    <div id="objectiveText">家の中を探索する</div>
+    <div id="progressRow">
+      <span id="noteCount">手記 0 / 3</span>
+      <span id="keyState"></span>
+    </div>
+  </div>
+
+  <div id="crosshair">・</div>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+  <div id="listenHint"></div>
+
+  <div id="controlsHint">WASD 移動 &nbsp; マウス 視点 &nbsp; Shift 早足 &nbsp; F 懐中電灯 &nbsp; E 調べる／開ける &nbsp; Q（長押し）耳を澄ます</div>
+  <div id="flashState">🔦 ON</div>
+</div>
+
+<div id="touchControls" class="hidden">
+  <div id="joystick"><div id="stick"></div></div>
+  <div class="touchButtons">
+    <button id="btnRun" type="button">走る</button>
+    <button id="btnFlash" type="button">ライト</button>
+    <button id="btnInteract" type="button">調べる</button>
+  </div>
+</div>
+
+<div id="titleScreen" class="screen">
+  <div class="titleInner">
+    <div class="gameKicker">和風一人称探索ホラー　プレイ可能プロトタイプ</div>
+    <h1>耳が飾りになるまで</h1>
+    <p class="story">
+      雨の夜、相続手続きのために訪れた祖母の古民家。<br>
+      玄関の鍵は、内側から忽然と消えていた。<br>
+      家のどこかで、誰かがあなたの名を囁いている——。
+    </p>
+    <div class="howto">
+      <b>遊び方</b><br>
+      手記を3枚集める → 玄関の鍵を見つける → 玄関から脱出する<br>
+      <span>WASD：移動／マウス：視点／Shift：早足／F：懐中電灯／E：調べる・襖を開ける／Q長押し：耳を澄ます（次の手がかりの方向が分かる）</span>
+    </div>
+    <button id="startBtn" class="mainBtn">▶ ゲームをはじめる</button>
+    <p class="note">PC＋ヘッドホン推奨。クリックでマウスがロックされ、Escで一時停止します。スマホでもバーチャル操作で遊べます。</p>
+  </div>
+</div>
+
+<div id="pauseScreen" class="screen hidden">
+  <div class="panel">
+    <h2>一時停止中</h2>
+    <p>家は、あなたが戻るのを待っています。</p>
+    <button id="resumeBtn" class="mainBtn">▶ つづける</button>
+    <button id="restartBtn1" class="subBtn">最初からやり直す</button>
+  </div>
+</div>
+
+<div id="noteScreen" class="screen hidden">
+  <div class="notePaper">
+    <div id="noteTitle">手記</div>
+    <div id="noteBody"></div>
+    <button id="noteCloseBtn" class="mainBtn">閉じる（E）</button>
+  </div>
+</div>
+
+<div id="endScreen" class="screen hidden">
+  <div class="panel">
+    <div id="endFace">👂</div>
+    <h2 id="endTitle">脱出成功</h2>
+    <p id="endText"></p>
+    <p id="endStats"></p>
+    <button id="restartBtn2" class="mainBtn">もう一度遊ぶ</button>
+  </div>
+</div>
+
+<div id="jumpscare" class="hidden">
+  <div class="scareFace">
+    <div class="scareHair"></div>
+    <div class="scareEyes"><span></span><span></span></div>
+    <div class="scareMouth"></div>
+  </div>
+</div>
+
+<script>
+/*__THREE__*/
+</script>
+<script>
+/*__GAME__*/
+</script>
+</body>
+</html>

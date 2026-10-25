@@ -1,0 +1,17 @@
+{
+  "name": "asset_game",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "esbuild": "^0.24.2",
+    "three": "^0.170.0",
+    "three-mesh-bvh": "^0.8.3"
+  }
+}
