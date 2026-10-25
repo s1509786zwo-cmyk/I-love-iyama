@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>耳が飾りになるまで — ASSET EDITION</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,'Yu Gothic',sans-serif;color:#e6e2d7;background:#080e15}*{box-sizing:border-box}body{margin:0;overflow:hidden}button,input,select{font:inherit}button,.file{border:1px solid #766d53;background:#20231f;color:#e7ddc7;padding:9px 13px;border-radius:4px;cursor:pointer}button:hover,.file:hover{background:#363a30}button:disabled{opacity:.35;cursor:wait}input,select{background:#111a22;color:#d8e1e6;border:1px solid #34434e;border-radius:3px;padding:8px;min-width:0}input[type=url]{flex:1}input[type=file]{display:none}h1{font-family:'Yu Mincho',serif;font-weight:400;font-size:clamp(25px,4vw,44px);letter-spacing:.14em;margin:12px 0}h2{font-size:13px;color:#ae9b72;letter-spacing:.13em;margin:0 0 10px}p{line-height:1.8;margin:10px 0}small{font-size:11px;color:#8799a5;line-height:1.8}a{color:#b9c9da}#view,canvas{position:fixed;inset:0;width:100%;height:100%;display:block}.hidden{display:none!important}#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,#0008 82%,#000c);z-index:2}#reticle{position:fixed;left:50%;top:50%;width:3px;height:3px;background:#ddd7be;box-shadow:0 0 2px #000;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:4}#hud{position:fixed;inset:0;z-index:3;pointer-events:none}#progress{position:absolute;left:24px;top:24px;border-left:2px solid #ac9a6b;padding:4px 16px;background:linear-gradient(90deg,#080e17b8,transparent)}#objective{font-size:13px;letter-spacing:.05em}#count{font-size:11px;color:#baad8d;margin-top:8px}#prompt{position:absolute;top:57%;width:100%;text-align:center;color:#e9dcb6;font-size:14px;text-shadow:0 2px 5px #000}#toast{position:absolute;bottom:17%;width:100%;padding:0 15%;text-align:center;font-family:serif;font-size:17px;text-shadow:0 2px 5px #000}#listen{position:absolute;top:24%;width:100%;text-align:center;color:#a8c9ed}#perf{position:absolute;right:18px;bottom:15px;color:#69808d;font-size:10px}#hint{position:absolute;bottom:15px;left:20px;font-size:11px;color:#a29d8d}#panel{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(110deg,#060b12ee,#0b141bb8);overflow:auto}#sheet{width:min(960px,100%);margin:auto}header small{letter-spacing:.2em;color:#b8a579}header p{color:#b5c1c8;font-size:13px;max-width:700px}.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:15px;margin-top:20px}.card{border:1px solid #52616c60;background:#111923b8;padding:18px;border-radius:5px}.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}.row input{min-width:120px}#status{padding:12px 0;color:#c6b88e;font-size:12px;min-height:44px;white-space:pre-wrap}#play{width:100%;padding:15px;background:#b8a16c;color:#10141a;border:0;font-weight:600;letter-spacing:.1em}#play:hover{background:#d4bd86}.details{font-size:12px;color:#9eaeb9}.tag{font-size:10px;color:#a5c0c9;border:1px solid #475c64;padding:3px 6px;margin-right:6px}#busy{position:fixed;bottom:0;left:0;right:0;z-index:12;background:#17202bea;color:#dbc999;text-align:center;padding:12px;font-size:12px}#drop{position:fixed;inset:15px;z-index:20;border:2px dashed #c5b684;background:#0b1728ed;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:25px;text-align:center}#reading{position:fixed;inset:0;background:#020508d9;z-index:15;display:flex;align-items:center;justify-content:center;padding:25px}article{width:570px;background:#d7cba7;color:#2d291f;padding:40px;box-shadow:0 20px 80px #000;font-family:serif}#noteTitle{font-size:23px;border-bottom:1px solid #968968;padding-bottom:16px}#noteText{white-space:pre-wrap;line-height:2.1;padding:14px 0}article button{background:transparent;color:#393224;border-color:#8d805e}.file{font-size:12px}footer{margin-top:15px;border-top:1px solid #46515c50;padding-top:10px}details{font-size:11px;color:#92a4b0}summary{cursor:pointer}#modelName{font-size:11px;color:#7a909f;margin-top:7px}@media(max-width:680px){.grid{grid-template-columns:1fr}#panel{padding:16px}header p{font-size:11px}h1{font-size:25px}.card{padding:13px}#hint{display:none}}
+</style><!-- Bundled third-party licenses:
+The MIT License
+
+Copyright © 2010-2024 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+MIT License
+
+Copyright (c) 2018 Garrett Johnson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-->
+</head><body>
+<div id="view"></div><div id="vignette"></div><div id="reticle"></div>
+<div id="hud"><div id="progress"><div id="objective">外部モデルを準備中</div><div id="count">手記 0/3</div></div><div id="prompt"></div><div id="listen"></div><div id="toast"></div><div id="hint">WASD 移動　SHIFT 早足　マウス 視点　E / 左クリック 調べる　F ライト　Q 耳を澄ます　ESC 設定</div><div id="perf"></div></div>
+<section id="panel"><div id="sheet"><header><small>EXTERNAL ASSET EDITION / GLTF 2.0</small><h1>耳が飾りになるまで</h1><p>光の届かない回廊。雨音が消えてゆく。<br>手記を三つ、鍵を一つ。最後の音が消える前に、入口へ戻ってください。</p><span class="tag">GLTF / GLB</span><span class="tag">2K PBR</span><span class="tag">BVH COLLISION</span></header>
+<div class="grid"><section class="card"><h2>01 — 探索する</h2><div class="details">開始時の1クリックでマウスをロック。以後はボタンを押さずに視点移動できます。Escで解除・一時停止。</div><div id="status">読込を開始します…</div><button id="play" disabled>モデルを準備中</button><div id="modelName">初期デモ：Sponza（日本家屋ではありません）</div><div class="row"><label class="details">描画品質 <select id="quality"><option value="high">標準 · 影あり</option><option value="low">軽量 · 影なし</option></select></label></div><small>自動で歩行可能な連結領域を検出し、到達可能な床へ手記・鍵を配置します。入口が脱出地点です。人形の追跡はこの刷新版には含みません。</small></section>
+<section class="card"><h2>02 — あなたの屋敷を読み込む</h2><div class="details">GLBを画面へドロップ。GLTFは .bin・textures を含むフォルダごと、または全ファイルをまとめてドロップしてください。</div><div class="row"><label class="file">ファイル選択<input id="file" type="file" multiple accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2"></label><label class="file">フォルダ選択<input id="folder" type="file" webkitdirectory multiple></label></div><div class="row"><input id="url" type="url" placeholder="https://…/your-house.glb" aria-label="外部GLBモデルURL"><button id="urlLoad">URL読込</button></div><small>ローカルファイルは外部へアップロードしません。URLモデルはCORS対応サーバーが必要。Y-up・内装あり・床と壁の実体がある建築モデルを推奨。最大水平寸法を42mへ自動調整します。</small></section>
+<section class="card"><h2>03 — 外部PBRマテリアル</h2><div class="details">Poly Havenの古木・畳・土壁、各2KのBaseColor / Roughness / OpenGL Normal。モデルの材質名と平面形状に応じて自動割当し、不明な材質は原作者の質感を維持します。</div><div id="pbrState" class="details">テクスチャ取得中…</div><div class="row"><select id="material" aria-label="対象マテリアル"></select><select id="preset" aria-label="PBRセット"><option value="wood">古木</option><option value="tatami">畳</option><option value="clay">土壁・塗壁</option></select></div><div class="row"><button id="apply">選択材質へ適用</button><button id="restore">原作の材質に戻す</button></div><small>畳は実物のPBR素材を使用。和紙専用素材は未使用で、モデル内の和紙は原作マテリアルを維持します。自動判定の誤りは「原作の材質に戻す」で解除できます。</small></section>
+<section class="card"><h2>04 — 遊び方と制約</h2><p class="details">WASD：移動 / Shift：早足<br>E または左クリック：手記・鍵を拾う<br>F：懐中電灯 / Q長押し：手がかり方向<br>Esc：マウス解除 / 設定画面</p><small>手記ごとに雨音→低いドローン→高いドローンが消え、足音も弱くなります。GLBは約53MB。初回はダウンロード・床解析に時間がかかります。高負荷モデルの60fpsは保証しません。スマホ操作は対象外です。</small></section></div>
+<footer><details><summary>アセットの出典・ライセンス / 読込に失敗した場合</summary><p>初期モデル：Sponza Atrium（欧州建築の回廊。古民家・複数の和室ではありません）。Frank Meinl / Crytek、Marko Dabrovic。PBR textures: Alexandre Pestana。配信元：<a href="https://github.com/Breush/lava-assets/blob/master/models/sponza.glb" target="_blank" rel="noopener">Breush/lava-assets</a>。元モデルの<a href="https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/Sponza/README.md" target="_blank" rel="noopener">出典・利用条件</a>を確認してください。公開配信は再配布・商用利用許諾を意味しません。製品化時は利用権を確認済みのアセットに差し替えてください。</p><p>テクスチャ：<a href="https://polyhaven.com/a/old_wood_floor" target="_blank" rel="noopener">Old Wood Floor</a> / <a href="https://polyhaven.com/a/tatami_mat" target="_blank" rel="noopener">Tatami Mat</a> / <a href="https://polyhaven.com/a/clay_plaster" target="_blank" rel="noopener">Clay Plaster</a>（Poly Haven / CC0）。Three.js MIT / three-mesh-bvh MIT。</p><p>インターネット接続が必要です。アプリ内のファイルビューアは外部通信・Pointer Lockが制限されるため、ダウンロードしたHTMLをChrome/Edgeで直接開くか、ライブプレビューを別タブで開いてください。CORSを無効化する必要はありません。GLTFの関連ファイルが不足するとロードできません。外観のみの家、閉じた扉、アニメーション付きの壁は自動で通行可能にはなりません。</p></details></footer></div></section>
+<div id="busy">初期化中…</div><div id="drop" class="hidden">GLB / GLTFフォルダをここへ<br>関連テクスチャ・BINもまとめてドロップ</div><section id="reading" class="hidden"><article><h2 id="noteTitle"></h2><div id="noteText"></div><button id="closeNote">閉じる（E）</button></article></section>
+<script>/*__ENGINE__*/</script></body></html>
